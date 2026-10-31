@@ -1,0 +1,11 @@
+[tools]
+awscli = "2.39.1"
+terraform = "1.17.1"
+jq = "1.8.2"
+
+[env]
+DR_HANDS_REGION = "us-east-2"
+
+[tasks.bootstrap-aws]
+description = "One-time: create the dr-hands AWS account and deploy key. Run after `aws login` as root."
+run = "bin/bootstrap-aws"
