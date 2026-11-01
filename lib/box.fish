@@ -3,12 +3,12 @@ set -g ssh_key ~/.ssh/dr-hands_ed25519
 set -g broker_host broker
 
 function fail
-    echo (status basename): $argv >&2
+    echo dr-hands: $argv >&2
     exit 1
 end
 
 function parse_report --argument-names id
-    string match -rq '^GHSA(-[a-z0-9]{4}){3}$' -- (string lower -- $id)
+    string match -rq '^ghsa(-[a-z0-9]{4}){3}$' -- (string lower -- $id)
     or fail "$id is not a GHSA ID"
     set -g report (string upper -- (string sub -l 4 -- $id))(string lower -- (string sub -s 5 -- $id))
     set -g box (string lower -- $id)
