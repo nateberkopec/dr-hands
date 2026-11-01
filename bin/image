@@ -30,19 +30,28 @@ set builder (aws ec2 run-instances --image-id $base --instance-type c7g.xlarge \
 or fail "could not launch the builder"
 echo "Building on $builder from $base"
 
+set -l result
+for i in (seq 300)
+    sleep 10
+    set -l console (aws ec2 get-console-output --instance-id $builder --latest --query Output --output text)
+    if string match -q '*DR-HANDS-IMAGE-FAILED*' -- $console
+        printf '%s\n' $console | tail -60 >&2
+        fail "the build failed; the end of the builder's console is above"
+    end
+    if string match -q '*DR-HANDS-IMAGE-OK*' -- $console
+        set result ok
+        break
+    end
+end
+test "$result" = ok; or fail "the builder did not finish within 50 minutes"
+
 set -l state
-for i in (seq 180)
+for i in (seq 60)
     set state (aws ec2 describe-instances --instance-ids $builder --query 'Reservations[0].Instances[0].State.Name' --output text)
     test "$state" = stopped; and break
-    sleep 15
+    sleep 10
 end
-test "$state" = stopped; or fail "the builder did not finish within 45 minutes"
-
-set -l console (aws ec2 get-console-output --instance-id $builder --latest --query Output --output text)
-if not string match -q '*DR-HANDS-IMAGE-OK*' -- $console
-    printf '%s\n' $console | tail -40 >&2
-    fail "the build failed; the end of the builder's console is above"
-end
+test "$state" = stopped; or fail "the builder did not stop after a successful build"
 
 set -l name dr-hands-(date -u +%Y%m%d-%H%M%S)
 set -l ami (aws ec2 create-image --instance-id $builder --name $name \

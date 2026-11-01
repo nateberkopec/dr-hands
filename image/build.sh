@@ -1,7 +1,8 @@
 #!/bin/bash
 set -euxo pipefail
 
-trap 'echo DR-HANDS-IMAGE-FAILED > /dev/console; systemctl poweroff' ERR
+exec > >(tee -a /var/log/dr-hands-image.log /dev/ttyS0) 2>&1
+trap 'echo DR-HANDS-IMAGE-FAILED; sleep 900; systemctl poweroff' ERR
 
 files=$(cd "$(dirname "$0")/files" && pwd)
 mise_version=2026.10.20
@@ -10,6 +11,7 @@ herdr_version=0.9.5
 herdr_sha256=17d7536f2da50859523680ef279dffcac8e4a235f4e46fe8da6c2ec44141897c
 tailscale_version=1.94.2
 export DEBIAN_FRONTEND=noninteractive
+echo 'DPkg::Lock::Timeout "600";' > /etc/apt/apt.conf.d/90dr-hands-lock
 
 apt-get update
 apt-get -y full-upgrade
@@ -63,5 +65,6 @@ systemctl enable nftables squid tailscaled ssh dr-hands-expire.timer
 rm -f /etc/ssh/ssh_host_* /home/agent/.bash_history /root/.bash_history
 apt-get clean
 cloud-init clean --logs
-echo DR-HANDS-IMAGE-OK > /dev/console
+echo DR-HANDS-IMAGE-OK
+sleep 45
 systemctl poweroff
