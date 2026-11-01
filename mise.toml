@@ -33,6 +33,10 @@ run = "bin/attach"
 description = "Fetch the advisory again and push it to its box: refresh GHSA-xxxx-xxxx-xxxx"
 run = "op run --env-file=op.env -- bin/refresh"
 
+[tasks.patch]
+description = "Copy the agent's fix branch to the laptop as a patch and flag risky files: patch GHSA-xxxx-xxxx-xxxx"
+run = "bin/patch"
+
 [tasks.rm]
 description = "Destroy one report's box, tailnet device and broker key: rm GHSA-xxxx-xxxx-xxxx"
 run = "op run --env-file=op.env -- bin/rm"

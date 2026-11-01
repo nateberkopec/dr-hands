@@ -1,0 +1,10 @@
+.github/*
+.gitattributes
+.gitmodules
+.tool-versions
+*mise.toml
+hk.pkl
+Makefile
+*.sh
+bin/*
+script/*
