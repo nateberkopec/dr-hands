@@ -47,29 +47,42 @@ function tailscale_api --argument-names method path
 end
 
 function tailnet_devices --argument-names prefix
-    tailscale_api GET '/tailnet/-/devices' | jq -c --arg prefix "$prefix" '.devices[] | select((.tags // []) | index("tag:ghsa")) | select(.name | startswith($prefix))'
+    set -l devices (tailscale_api GET '/tailnet/-/devices'); or return 1
+    printf '%s\n' $devices | jq -c --arg prefix "$prefix" '.devices[] | select((.tags // []) | index("tag:ghsa")) | select(.name | startswith($prefix))'
 end
 
 function terraform_box
     terraform -chdir=$repo/box $argv
 end
 
+function box_workspaces
+    set -l workspaces (TF_WORKSPACE= terraform_box workspace list); or return 1
+    string trim -c ' *' -- $workspaces | string match -v -e default | string match -v ''
+end
+
 function remove_box
     set -l failed
-    if terraform_box workspace list | string trim -c ' *' | string match -q -- $box
-        terraform_box workspace select $box >/dev/null
-        TF_VAR_tailnet_auth_key=unused terraform_box destroy -auto-approve -input=false \
+    set -l workspaces (box_workspaces); or set failed $failed "list Terraform workspaces"
+    if contains -- $box $workspaces
+        TF_WORKSPACE=$box TF_VAR_tailnet_auth_key=unused terraform_box destroy -auto-approve -input=false \
             -var report=$box -var ami=unused -var ssh_public_key=unused >/dev/null
+        and TF_WORKSPACE= terraform_box workspace delete $box >/dev/null
         or set failed $failed "terraform destroy"
-        terraform_box workspace select default >/dev/null
-        test -z "$failed"; and terraform_box workspace delete $box >/dev/null
     end
-    for device in (tailnet_devices $box.)
+    set -l devices (tailnet_devices $box.); or set failed $failed "list tailnet devices"
+    for device in $devices
         tailscale_api DELETE /device/(echo $device | jq -r .id) >/dev/null
         or set failed $failed "tailnet device $(echo $device | jq -r .name)"
     end
     broker DELETE /grants/$box >/dev/null
     or set failed $failed "broker key"
+
+    set -l left (tailnet_devices $box.); or set failed $failed "recheck tailnet devices"
+    test -z "$left"; or set failed $failed "tailnet device still present"
+    set -l grants (broker GET /grants); or set failed $failed "recheck broker keys"
+    printf '%s\n' $grants | jq -e --arg r $box 'any(.[]; .report == $r) | not' >/dev/null
+    or set failed $failed "broker key still present"
+
     if test -n "$failed"
         echo "$report: could not remove: "(string join ', ' $failed) >&2
         return 1

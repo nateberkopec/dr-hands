@@ -16,5 +16,4 @@ end
 function push_advisory
     box_ssh 'mkdir -p ~/work && cat > ~/work/advisory.json' <$state/advisory.json
     and box_ssh 'cat > ~/work/advisory.md' <$state/advisory.md
-    or fail "could not copy the advisory to the box"
 end

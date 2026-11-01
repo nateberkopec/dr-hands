@@ -7,5 +7,5 @@ test (count $argv) -eq 1; or fail "usage: refresh GHSA-xxxx-xxxx-xxxx"
 parse_report $argv[1]
 test -f $state/known_hosts; or fail "$report has no box"
 fetch_advisory; or exit 1
-push_advisory
+push_advisory; or fail "could not copy the advisory to the box"
 echo "$report: advisory updated on the box"
