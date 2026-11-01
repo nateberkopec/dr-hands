@@ -1,0 +1,14 @@
+#cloud-config
+hostname: ${hostname}
+write_files:
+  - path: /root/tailnet-auth-key
+    permissions: "0600"
+    content: ${tailnet_auth_key}
+  - path: /home/agent/.ssh/authorized_keys
+    owner: agent:agent
+    permissions: "0600"
+    defer: true
+    content: ${ssh_public_key}
+runcmd:
+  - [tailscale, up, --auth-key=file:/root/tailnet-auth-key, "--hostname=${hostname}", --accept-dns=false, --accept-routes=false]
+  - [rm, -f, /root/tailnet-auth-key]

@@ -1,0 +1,11 @@
+#!/usr/bin/env fish
+
+source (status dirname)/../lib/box.fish
+source $repo/lib/fetch.fish
+
+test (count $argv) -eq 1; or fail "usage: refresh GHSA-xxxx-xxxx-xxxx"
+parse_report $argv[1]
+test -f $state/known_hosts; or fail "$report has no box"
+fetch_advisory; or exit 1
+push_advisory
+echo "$report: advisory updated on the box"

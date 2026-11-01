@@ -1,0 +1,80 @@
+#!/usr/bin/env fish
+
+source (status dirname)/../lib/box.fish
+
+argparse no-attach -- $argv
+or exit 1
+test (count $argv) -eq 2; or fail "usage: add OWNER/REPO GHSA-xxxx-xxxx-xxxx [--no-attach]"
+set -g github_repo $argv[1]
+string match -rq '^[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+$' -- $github_repo; or fail "$github_repo is not OWNER/REPO"
+parse_report $argv[2]
+test -d $state; and fail "$report already has a box; use `mise run attach $report` or `mise run rm $report`"
+set -l ami (string trim < $repo/image/ami); or fail "no image yet; run `mise run image`"
+
+test -f $ssh_key; or ssh-keygen -q -t ed25519 -N '' -C dr-hands -f $ssh_key
+mkdir -p $state
+echo $github_repo >$state/github-repo
+source $repo/lib/fetch.fish
+fetch_advisory; or begin
+    rm -rf $state
+    exit 1
+end
+
+echo "Creating the box"
+set -l auth_key (tailscale_api POST '/tailnet/-/keys' -d (jq -cn --arg d "dr-hands $box" '{capabilities:{devices:{create:{reusable:false,ephemeral:true,preauthorized:true,tags:["tag:ghsa"]}}},expirySeconds:600,description:$d}') | jq -r .key)
+test -n "$auth_key"; or fail "could not create a tailnet auth key"
+terraform_box workspace select -or-create $box >/dev/null
+TF_VAR_tailnet_auth_key=$auth_key terraform_box apply -auto-approve -input=false \
+    -var report=$box -var ami=$ami -var ssh_public_key=(string trim < $ssh_key.pub) >/dev/null
+or fail "terraform apply failed; run `mise run rm $report` to clean up"
+set -g instance (terraform_box output -raw instance_id)
+
+set -l device
+for i in (seq 60)
+    set device (tailnet_devices $box. | jq -c 'select(.connectedToControl)')
+    test (count $device) -eq 1; and break
+    sleep 5
+end
+test (count $device) -eq 1; or fail "the box did not join the tailnet; run `mise run rm $report` to clean up"
+echo $device | jq -r '.addresses[] | select(test("^100\\."))' >$state/ip
+
+set -l host_key
+for i in (seq 30)
+    set host_key (aws ec2 get-console-output --instance-id $instance --latest --query Output --output text \
+        | sed -n '/-----BEGIN SSH HOST KEY KEYS-----/,/-----END SSH HOST KEY KEYS-----/p' | string match -r '^ssh-ed25519 \S+')
+    test -n "$host_key"; and break
+    sleep 5
+end
+test -n "$host_key"; or fail "could not read the box's SSH host key from its console"
+echo (string trim < $state/ip) $host_key >$state/known_hosts
+
+aws ec2 modify-instance-metadata-options --instance-id $instance --http-endpoint disabled >/dev/null
+or fail "could not disable the instance metadata service"
+set -l metadata
+for i in (seq 30)
+    set metadata (aws ec2 describe-instances --instance-ids $instance --query 'Reservations[0].Instances[0].MetadataOptions.[State,HttpEndpoint]' --output text | string replace -a \t ' ')
+    test "$metadata" = "applied disabled"; and break
+    sleep 2
+end
+test "$metadata" = "applied disabled"; or fail "the instance metadata service did not turn off"
+
+for i in (seq 30)
+    box_ssh true 2>/dev/null; and break
+    sleep 5
+end
+box_ssh true; or fail "could not SSH to the box"
+
+set -l broker_key (broker POST /grants (jq -cn --arg r $box '{report:$r,ttlSeconds:43200}') | jq -r .key)
+test -n "$broker_key"; or fail "could not mint a broker key"
+jq -n --arg k $broker_key '{meridian:{type:"api_key",key:$k},openai:{type:"api_key",key:$k},"vercel-ai-gateway":{type:"api_key",key:$k}}' \
+    | box_ssh 'umask 077 && cat > ~/.pi/agent/auth.json'
+or fail "could not give the box its broker key"
+box_ssh 'cat > ~/.pi/agent/models.json' <$repo/box/pi-models.json
+or fail "could not give the box its model routes"
+push_advisory
+set -l name (string split / -- $github_repo)[2]
+box_ssh "bash -lc 'git clone --quiet https://github.com/$github_repo.git ~/work/$name'"
+or fail "could not clone $github_repo on the box"
+
+echo "$report: ready"
+set -q _flag_no_attach; or exec $repo/bin/attach $report

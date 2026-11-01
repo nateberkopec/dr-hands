@@ -1,0 +1,14 @@
+#!/usr/bin/env fish
+
+source (status dirname)/../lib/box.fish
+
+test (count $argv) -eq 1; or fail "usage: attach GHSA-xxxx-xxxx-xxxx"
+parse_report $argv[1]
+test -f $state/known_hosts; or fail "$report has no box; run `mise run add OWNER/REPO $report`"
+
+open -na Ghostty.app --args \
+    --command="$repo/bin/session $report" \
+    --title="dr-hands $report" \
+    --clipboard-read=deny --clipboard-write=deny \
+    --desktop-notifications=false --link-url=false --image-storage-limit=0 \
+    --window-save-state=never --quit-after-last-window-closed=true

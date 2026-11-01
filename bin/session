@@ -1,0 +1,6 @@
+#!/usr/bin/env fish
+
+source (status dirname)/../lib/box.fish
+
+parse_report $argv[1]
+box_ssh -t 'bash -lc herdr'
