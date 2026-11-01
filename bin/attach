@@ -11,4 +11,6 @@ open -na Ghostty.app --args \
     --title="dr-hands $report" \
     --clipboard-read=deny --clipboard-write=deny \
     --desktop-notifications=false --link-url=false --image-storage-limit=0 \
+    --title-report=false --osc-color-report-format=none --clipboard-paste-protection=true \
+    --bell-features=no-system,no-audio,no-attention,no-title,no-border \
     --window-save-state=never --quit-after-last-window-closed=true
