@@ -2,7 +2,8 @@
 set -euxo pipefail
 
 exec > >(tee -a /var/log/dr-hands-image.log /dev/ttyS0) 2>&1
-trap 'echo DR-HANDS-IMAGE-FAILED; sleep 900; systemctl poweroff' ERR
+report() { echo "DR-HANDS-IMAGE-$1"; }
+trap 'report FAILED; sleep 900; systemctl poweroff' ERR
 
 files=$(cd "$(dirname "$0")/files" && pwd)
 mise_version=2026.10.20
@@ -65,6 +66,6 @@ systemctl enable nftables squid tailscaled ssh dr-hands-expire.timer
 rm -f /etc/ssh/ssh_host_* /home/agent/.bash_history /root/.bash_history
 apt-get clean
 cloud-init clean --logs
-echo DR-HANDS-IMAGE-OK
+report OK
 sleep 45
 systemctl poweroff
