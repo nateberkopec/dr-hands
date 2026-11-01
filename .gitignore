@@ -3,3 +3,4 @@ tmp/
 *.tfstate
 *.tfstate.*
 state/
+mise.local.toml

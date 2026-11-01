@@ -1,6 +1,5 @@
 set -g repo (realpath (status dirname)/..)
 set -g ssh_key ~/.ssh/dr-hands_ed25519
-set -g broker_host broker
 
 function fail
     echo dr-hands: $argv >&2
@@ -30,9 +29,33 @@ function box_ssh
 end
 
 function broker --argument-names method path body
-    set -l script 'T=$(sed -n "s/^ADMIN_TOKEN=//p" ~/dr-hands-broker/admin.env)
+    set -l script 'f=$4; T=$(sed -n "s/^ADMIN_TOKEN=//p" "${f/#\~/$HOME}")
 curl -sf -X "$1" "http://127.0.0.1:3461$2" -H "authorization: Bearer $T" ${3:+-d "$3"}'
-    printf '%s\n' $script | ssh $broker_host bash -s -- (string escape -- $method $path $body)
+    printf '%s\n' $script | ssh $DR_HANDS_BROKER_SSH bash -s -- (string escape -- $method $path "$body" $DR_HANDS_BROKER_TOKEN_FILE)
+end
+
+function image_settings
+    string match -rq '^[a-z0-9_-]+( [a-z0-9_-]+)*$' -- "$DR_HANDS_STACKS"; or fail "DR_HANDS_STACKS must be stack names separated by spaces"
+    for stack in (string split ' ' -- $DR_HANDS_STACKS)
+        test -d $repo/stacks/$stack; or fail "there is no stack named $stack in stacks/"
+    end
+    string match -rq '^[A-Za-z0-9.-]+$' -- "$DR_HANDS_BROKER_HOST"; or fail "DR_HANDS_BROKER_HOST must be a host name"
+    string match -rq '^[0-9]{1,3}(\.[0-9]{1,3}){3}$' -- "$DR_HANDS_BROKER_IP"; or fail "DR_HANDS_BROKER_IP must be an IPv4 address"
+    printf "DR_HANDS_STACKS='%s'\nDR_HANDS_BROKER_HOST='%s'\nDR_HANDS_BROKER_IP='%s'\n" $DR_HANDS_STACKS $DR_HANDS_BROKER_HOST $DR_HANDS_BROKER_IP
+end
+
+function image_inputs
+    printf '%s\n' $repo/image/build.sh $repo/image/files/*
+    for stack in (string split ' ' -- $DR_HANDS_STACKS)
+        printf '%s\n' $repo/stacks/$stack/*
+    end
+end
+
+function image_fingerprint
+    begin
+        image_settings
+        cat (image_inputs)
+    end | shasum -a 256 | string split -f1 ' '
 end
 
 function tailscale_token

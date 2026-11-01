@@ -5,15 +5,20 @@ jq = "1.8.2"
 ruby = "4.0.9"
 
 [env]
-DR_HANDS_REGION = "us-east-2"
 AWS_REGION = "us-east-2"
+DR_HANDS_REGION = "us-east-2"
+DR_HANDS_STACKS = "ruby node"
+DR_HANDS_BROKER_HOST = "broker.example.ts.net"
+DR_HANDS_BROKER_IP = "100.100.100.100"
+DR_HANDS_BROKER_SSH = "broker"
+DR_HANDS_BROKER_TOKEN_FILE = "~/dr-hands-broker/admin.env"
 
 [tasks.bootstrap-aws]
 description = "One-time: create the dr-hands AWS account and deploy key. Run after `aws login` as root."
 run = "bin/bootstrap-aws"
 
 [tasks.image]
-description = "Build the box image and record its ID in image/ami"
+description = "Build the box image from image/ and the stacks in DR_HANDS_STACKS"
 run = "op run --env-file=op.env -- bin/image"
 
 [tasks.add]

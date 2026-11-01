@@ -1,7 +1,0 @@
-{
-  "providers": {
-    "meridian": { "baseUrl": "https://broker.example.ts.net:3460/claude" },
-    "openai": { "baseUrl": "https://broker.example.ts.net:3460/chatgpt/v1" },
-    "vercel-ai-gateway": { "baseUrl": "https://broker.example.ts.net:3460/vercel" }
-  }
-}

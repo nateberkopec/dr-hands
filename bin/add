@@ -9,7 +9,10 @@ set -g github_repo $argv[1]
 string match -rq '^[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+$' -- $github_repo; or fail "$github_repo is not OWNER/REPO"
 parse_report $argv[2]
 test -d $state; and fail "$report already has a box; use `mise run attach $report` or `mise run rm $report`"
-set -l ami (string trim < $repo/image/ami); or fail "no image yet; run `mise run image`"
+test -f $repo/state/image; or fail "no image yet; run `mise run image`"
+set -l ami (string split ' ' -- (string trim < $repo/state/image))
+test "$ami[2]" = (image_fingerprint); or fail "the image is out of date with stacks/, image/ or the settings; run `mise run image`"
+set ami $ami[1]
 
 terraform_box init -input=false >/dev/null; or fail "terraform init failed"
 test -f $ssh_key; or ssh-keygen -q -t ed25519 -N '' -C dr-hands -f $ssh_key
@@ -79,7 +82,8 @@ test -n "$broker_key"; or abort "could not mint a broker key"
 jq -n --arg k $broker_key '{meridian:{type:"api_key",key:$k},openai:{type:"api_key",key:$k},"vercel-ai-gateway":{type:"api_key",key:$k}}' \
     | box_ssh 'umask 077 && cat > ~/.pi/agent/auth.json'
 or abort "could not give the box its broker key"
-box_ssh 'cat > ~/.pi/agent/models.json' <$repo/box/pi-models.json
+jq -n --arg url https://$DR_HANDS_BROKER_HOST:3460 '{providers:{meridian:{baseUrl:"\($url)/claude"},openai:{baseUrl:"\($url)/chatgpt/v1"},"vercel-ai-gateway":{baseUrl:"\($url)/vercel"}}}' \
+    | box_ssh 'cat > ~/.pi/agent/models.json'
 or abort "could not give the box its model routes"
 push_advisory; or abort "could not copy the advisory to the box"
 set -l name (string split / -- $github_repo)[2]

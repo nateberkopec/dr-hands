@@ -1,0 +1,7 @@
+libssl-dev
+libyaml-dev
+zlib1g-dev
+libffi-dev
+libreadline-dev
+libgmp-dev
+libsqlite3-dev
