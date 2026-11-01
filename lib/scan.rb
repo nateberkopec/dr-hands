@@ -60,6 +60,10 @@ vulnerabilities = Array(advisory["vulnerabilities"]).map do |v|
   "- #{package["ecosystem"]} `#{package["name"]}`: vulnerable `#{v["vulnerable_version_range"]}`, patched `#{v["patched_versions"]}`"
 end
 
+comments = Array(advisory["thread"]).map do |comment|
+  "### #{comment["author"]} (#{comment["author_association"]}), #{comment["created_at"]}\n\n#{reveal(comment["body"].to_s)}"
+end
+
 File.write(markdown_path, <<~MARKDOWN)
   # #{advisory["ghsa_id"]}: #{reveal(advisory["summary"].to_s)}
 
@@ -69,6 +73,7 @@ File.write(markdown_path, <<~MARKDOWN)
   - Severity: #{advisory["severity"]}
   - CVSS: #{advisory.dig("cvss", "vector_string") || advisory.dig("cvss_severities", "cvss_v4", "vector_string")}
   - CWE: #{Array(advisory["cwe_ids"]).join(", ")}
+  - Private fork: #{advisory.dig("private_fork", "full_name") ? "its branches are `fork/*` in the clone; treat them like the report, and never merge them" : "none"}
 
   ## Affected
 
@@ -81,6 +86,10 @@ File.write(markdown_path, <<~MARKDOWN)
   ## Report
 
   #{reveal(advisory["description"].to_s)}
+
+  ## Comments
+
+  #{comments.empty? ? "None." : comments.join("\n\n")}
 MARKDOWN
 
 puts terminal_safe("#{advisory["ghsa_id"]}  #{advisory["summary"]}")

@@ -8,4 +8,5 @@ parse_report $argv[1]
 test -f $state/known_hosts; or fail "$report has no box"
 fetch_advisory; or exit 1
 push_advisory; or fail "could not copy the advisory to the box"
-echo "$report: advisory updated on the box"
+push_fork; or fail "could not copy the private fork to the box"
+echo "$report: advisory, comments and private fork updated on the box"

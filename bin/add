@@ -85,6 +85,7 @@ push_advisory; or abort "could not copy the advisory to the box"
 set -l name (string split / -- $github_repo)[2]
 box_ssh "bash -lc 'git clone --quiet https://github.com/$github_repo.git ~/work/$name'"
 or abort "could not clone $github_repo on the box"
+push_fork; or abort "could not copy the private fork to the box"
 
 echo "$report: ready"
 set -q _flag_no_attach; or exec $repo/bin/attach $report

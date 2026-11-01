@@ -5,7 +5,7 @@ Isolated machines for triaging private GitHub Security Advisory reports with cod
 ```fish
 mise run add puma/puma GHSA-xxxx-xxxx-xxxx   # boot a box, load the report, open a locked-down terminal
 mise run attach GHSA-xxxx-xxxx-xxxx          # reopen the terminal
-mise run refresh GHSA-xxxx-xxxx-xxxx         # push the advisory again after a reporter reply
+mise run refresh GHSA-xxxx-xxxx-xxxx         # push the advisory, comments and private fork again after a reply
 mise run rm GHSA-xxxx-xxxx-xxxx              # destroy one box
 mise run down                                # destroy every box and sweep leftovers
 mise run image                               # rebuild the box image
