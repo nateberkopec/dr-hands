@@ -4,6 +4,7 @@ import { createServer, type IncomingMessage, type ServerResponse } from "node:ht
 import { join } from "node:path";
 import { Readable, Transform } from "node:stream";
 import { pipeline } from "node:stream/promises";
+import { StringDecoder } from "node:string_decoder";
 
 function env(name: string, fallback?: string): string {
 	const value = process.env[name] || fallback;
@@ -214,10 +215,11 @@ function usageOf(event: unknown): Record<string, unknown> | undefined {
 	return undefined;
 }
 
-function meter(contentType: string): { stream: Transform; tokens: () => number } {
+function meter(): { stream: Transform; tokens: () => number } {
 	const usage: Record<string, number> = {};
-	const sse = contentType.includes("text/event-stream");
+	const decoder = new StringDecoder("utf8");
 	let pending = "";
+	let whole = "";
 	const consume = (text: string) => {
 		let event: unknown;
 		try {
@@ -237,20 +239,22 @@ function meter(contentType: string): { stream: Transform; tokens: () => number }
 	};
 	const stream = new Transform({
 		transform(chunk: Buffer, _encoding, callback) {
-			pending += chunk.toString("utf8");
-			if (sse) {
-				const lines = pending.split("\n");
-				pending = lines.pop() ?? "";
-				lines.forEach(consumeLine);
-			} else if (pending.length > config.maxBodyBytes) {
-				pending = "";
-			}
+			const text = decoder.write(chunk);
+			if (whole.length <= config.maxBodyBytes) whole += text;
+			pending += text;
+			const lines = pending.split("\n");
+			pending = lines.pop() ?? "";
+			lines.forEach(consumeLine);
 			callback(null, chunk);
 		},
 		flush(callback) {
-			if (sse) consumeLine(pending);
-			else consume(pending);
+			const tail = decoder.end();
+			pending += tail;
+			whole += tail;
+			consumeLine(pending);
+			if (Object.keys(usage).length === 0 && whole.length <= config.maxBodyBytes) consume(whole);
 			pending = "";
+			whole = "";
 			callback();
 		},
 	});
@@ -287,7 +291,7 @@ async function proxy(request: IncomingMessage, response: ServerResponse, route: 
 		response.end();
 		return;
 	}
-	const usage = meter(headers["content-type"] ?? "");
+	const usage = meter();
 	try {
 		await pipeline(Readable.fromWeb(upstream.body), usage.stream, response);
 	} finally {
