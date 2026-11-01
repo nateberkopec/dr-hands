@@ -23,7 +23,8 @@ mise run add owner/repo GHSA-xxxx-xxxx-xxxx
 
 ## What you need
 
-- macOS with [Ghostty](https://ghostty.org), fish, [mise](https://mise.jdx.dev), the 1Password CLI, and the GitHub CLI signed in
+- macOS with [Ghostty](https://ghostty.org), fish, [mise](https://mise.jdx.dev), and the GitHub CLI signed in
+- A secret store that [fnox](https://fnox.jdx.dev) can read, such as 1Password
 - An AWS account with Organizations. Setup creates a separate member account for boxes.
 - A [Tailscale](https://tailscale.com) tailnet you administer
 - A machine on your tailnet that runs the inference broker in Docker. The broker forwards to [Meridian](https://github.com/rynfar/meridian) for Claude and ChatGPT subscriptions, and to Vercel AI Gateway.

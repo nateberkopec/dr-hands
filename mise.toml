@@ -3,15 +3,7 @@ awscli = "2.39.1"
 terraform = "1.17.1"
 jq = "1.8.2"
 ruby = "4.0.9"
-
-[env]
-AWS_REGION = "us-east-2"
-DR_HANDS_REGION = "us-east-2"
-DR_HANDS_STACKS = "ruby node"
-DR_HANDS_BROKER_HOST = "broker.example.ts.net"
-DR_HANDS_BROKER_IP = "100.100.100.100"
-DR_HANDS_BROKER_SSH = "broker"
-DR_HANDS_BROKER_TOKEN_FILE = "~/dr-hands-broker/admin.env"
+fnox = "1.45.0"
 
 [tasks.bootstrap-aws]
 description = "One-time: create the dr-hands AWS account and deploy key. Run after `aws login` as root."
@@ -19,11 +11,11 @@ run = "bin/bootstrap-aws"
 
 [tasks.image]
 description = "Build the box image from image/ and the stacks in DR_HANDS_STACKS"
-run = "op run --env-file=op.env -- bin/image"
+run = "fnox exec -- bin/image"
 
 [tasks.add]
 description = "Boot a box for one report, load it, and attach: add OWNER/REPO GHSA-xxxx-xxxx-xxxx"
-run = "op run --env-file=op.env -- bin/add"
+run = "fnox exec -- bin/add"
 
 [tasks.attach]
 description = "Open a locked-down terminal on a report's box: attach GHSA-xxxx-xxxx-xxxx"
@@ -31,7 +23,7 @@ run = "bin/attach"
 
 [tasks.refresh]
 description = "Fetch the advisory again and push it to its box: refresh GHSA-xxxx-xxxx-xxxx"
-run = "op run --env-file=op.env -- bin/refresh"
+run = "fnox exec -- bin/refresh"
 
 [tasks.patch]
 description = "Copy the agent's fix branch to the laptop as a patch and flag risky files: patch GHSA-xxxx-xxxx-xxxx"
@@ -39,8 +31,8 @@ run = "bin/patch"
 
 [tasks.rm]
 description = "Destroy one report's box, tailnet device and broker key: rm GHSA-xxxx-xxxx-xxxx"
-run = "op run --env-file=op.env -- bin/rm"
+run = "fnox exec -- bin/rm"
 
 [tasks.down]
 description = "Destroy every box and sweep leftovers"
-run = "op run --env-file=op.env -- bin/down"
+run = "fnox exec -- bin/down"

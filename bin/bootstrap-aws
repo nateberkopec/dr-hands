@@ -10,9 +10,9 @@ end
 
 set -q _flag_email
 or fail "--email is required: a new address for the dr-hands AWS account, such as you+dr-hands@example.com"
-set -g region $DR_HANDS_REGION
+set -g region $AWS_REGION
 set -q _flag_region; and set region $_flag_region
-test -n "$region"; or fail "set --region or DR_HANDS_REGION"
+test -n "$region"; or fail "set --region or AWS_REGION"
 set -g budget 50
 set -q _flag_budget; and set budget $_flag_budget
 set -g alert_email $_flag_email

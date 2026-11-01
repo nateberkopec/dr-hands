@@ -6,6 +6,10 @@ function fail
     exit 1
 end
 
+for setting in AWS_REGION DR_HANDS_STACKS DR_HANDS_BROKER_HOST DR_HANDS_BROKER_IP DR_HANDS_BROKER_SSH DR_HANDS_BROKER_TOKEN_FILE
+    set -q $setting; or fail "$setting is not set; see docs/configuration.md"
+end
+
 function parse_report --argument-names id
     string match -rq '^ghsa(-[a-z0-9]{4}){3}$' -- (string lower -- $id)
     or fail "$id is not a GHSA ID"

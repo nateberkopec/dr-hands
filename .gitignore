@@ -4,3 +4,4 @@ tmp/
 *.tfstate.*
 state/
 mise.local.toml
+fnox.local.toml

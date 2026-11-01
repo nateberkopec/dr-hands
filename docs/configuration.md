@@ -1,12 +1,6 @@
 # Configuration
 
-dr-hands reads its settings from the `[env]` table in `mise.toml`. Override any of them in `mise.local.toml`, which git ignores:
-
-```toml
-[env]
-AWS_REGION = "us-east-2"
-DR_HANDS_STACKS = "python node"
-```
+Settings go in the `[env]` table of `mise.local.toml`. Secrets go in `fnox.local.toml`. Git ignores both files.
 
 After you change a stack or a setting marked below, run `mise run image`.
 
@@ -15,14 +9,28 @@ After you change a stack or a setting marked below, run `mise run image`.
 | Setting | Used for | Rebuild image? |
 |---|---|---|
 | `AWS_REGION` | Where boxes and images live | Yes |
-| `DR_HANDS_REGION` | The region `bootstrap-aws` sets up. Keep it equal to `AWS_REGION`. | No |
 | `DR_HANDS_STACKS` | Languages on the box, separated by spaces | Yes |
 | `DR_HANDS_BROKER_HOST` | The broker's TLS name on your tailnet, such as `broker.example.ts.net` | Yes |
 | `DR_HANDS_BROKER_IP` | The broker's tailnet IPv4 address | Yes |
 | `DR_HANDS_BROKER_SSH` | The SSH host your laptop uses to reach the broker's admin port | No |
 | `DR_HANDS_BROKER_TOKEN_FILE` | The admin token file on the broker host | No |
 
-Point the 1Password references in `op.env` at your own vault items.
+## Secrets
+
+`fnox.toml` names the four secrets dr-hands needs. Tell [fnox](https://fnox.jdx.dev) where yours live in `fnox.local.toml`. For 1Password:
+
+```toml
+[providers.op]
+type = "1password"
+
+[secrets]
+AWS_ACCESS_KEY_ID = { provider = "op", value = "op://Private/dr-hands-aws-deploy/username" }
+AWS_SECRET_ACCESS_KEY = { provider = "op", value = "op://Private/dr-hands-aws-deploy/credential" }
+TAILSCALE_OAUTH_CLIENT_ID = { provider = "op", value = "op://Private/dr-hands-tailscale/username" }
+TAILSCALE_OAUTH_CLIENT_SECRET = { provider = "op", value = "op://Private/dr-hands-tailscale/credential" }
+```
+
+Any other fnox provider works too.
 
 ## Stacks
 

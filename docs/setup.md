@@ -23,7 +23,7 @@ aws login
 mise run bootstrap-aws --email you+dr-hands@example.com
 ```
 
-Add `--create-organization` if you don't have an Organization yet. If you pass `--vault` to save the key elsewhere in 1Password, update `op.env` to match.
+Add `--create-organization` if you don't have an Organization yet. The bootstrap saves the deploy key to 1Password as `Private/dr-hands-aws-deploy`; pass `--vault` to pick another vault.
 
 ## 3. Tailscale
 
@@ -44,7 +44,7 @@ Add a tag for boxes, and grants that let boxes reach only the broker. Replace th
 
 Check that no broader grant covers `tag:ghsa`, such as one for `autogroup:tagged` or `*`.
 
-Then create an OAuth client with the `devices:core` and `auth_keys` write scopes, limited to `tag:ghsa`. Save it in 1Password, with the client ID as `username` and the secret as `credential`. Then point the `TAILSCALE_OAUTH_*` lines in `op.env` at that item.
+Then create an OAuth client with the `devices:core` and `auth_keys` write scopes, limited to `tag:ghsa`. Save it in 1Password, with the client ID as `username` and the secret as `credential`. Then point dr-hands at both secrets, as shown in [configuration.md](configuration.md#secrets).
 
 ## 4. The broker
 
@@ -94,7 +94,6 @@ Point dr-hands at your broker and choose your languages in `mise.local.toml`:
 ```toml
 [env]
 AWS_REGION = "us-east-2"
-DR_HANDS_REGION = "us-east-2"
 DR_HANDS_STACKS = "ruby node"
 DR_HANDS_BROKER_HOST = "broker.example.ts.net"
 DR_HANDS_BROKER_IP = "100.100.100.100"
