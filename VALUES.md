@@ -2,25 +2,14 @@
 
 These are the rules we design dr-hands by. The feature files in `features/` say what it does. This file says why.
 
-## Every report is hostile
+## Security first
 
-Strangers write security reports. Some will try to trick the agent, or you. So we treat the agent as the attacker. It gets a shell, but nothing worth stealing.
+Every report is hostile, and we treat the agent as the attacker. [SECURITY.md](SECURITY.md#what-we-assume) explains the threat model, [how dr-hands protects you](SECURITY.md#how-dr-hands-protects-you), and [the risks we accept](SECURITY.md#risks-we-accept). Two design rules follow from it:
 
-## The agent is the hands. You are the head.
+- **Enforce rules where a hostile box cannot reach them.** A rule on the box holds only until the agent gets root. So the rules that matter live outside it: cloud firewalls, the tailnet policy, and the OpenRouter workspace.
+- **Teardown proves itself.** Removing a box checks that nothing survived, and fails loudly when something did.
 
-The agent finds the code path, writes a failing test, and drafts a fix. You read the verdict, run the test, and review every line. You take every GitHub action yourself.
-
-## Enforce rules where a hostile box cannot reach them
-
-A rule on the box holds only until the agent gets root. So the rules that matter live outside the box: cloud firewalls, the tailnet policy, and the OpenRouter workspace. Rules on the box are a second layer.
-
-## Hold nothing worth stealing
-
-A box gets only what one report needs. Its one secret is its own AI key. That key is capped in dollars, limited to allowed models, and dies with the box.
-
-## One box per report, then gone
-
-Each report gets a fresh machine. Removing it leaves nothing behind. Teardown checks its own work and fails loudly when something survives.
+When we accept a new risk, we add it to SECURITY.md.
 
 ## Run no servers of our own
 
@@ -37,10 +26,6 @@ Cloud resources come from code, not clicks. A one-time manual step is fine when 
 ## Keep you out of the repository
 
 Personal settings live in `mise.local.toml`. Secrets live in your own secret store, through fnox. Neither goes into git.
-
-## Write down the risks we accept
-
-No setup is perfectly safe. When we accept a risk, `SECURITY.md` names it.
 
 ## Done means proven
 
