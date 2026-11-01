@@ -2,7 +2,7 @@ import { createHash, randomBytes, timingSafeEqual } from "node:crypto";
 import { mkdirSync, readFileSync, renameSync, writeFileSync } from "node:fs";
 import { createServer, type IncomingMessage, type ServerResponse } from "node:http";
 import { join } from "node:path";
-import { Readable } from "node:stream";
+import { Readable, Transform } from "node:stream";
 import { pipeline } from "node:stream/promises";
 
 function env(name: string, fallback?: string): string {
@@ -34,7 +34,8 @@ const config = {
 	chatgptModels: list("CHATGPT_MODELS"),
 	vercelModels: list("VERCEL_MODELS"),
 	maxConcurrency: Number(env("MAX_CONCURRENCY", "6")),
-	maxBodyBytes: Number(env("MAX_BODY_BYTES", String(32 * 1024 * 1024))),
+	maxBodyBytes: Number(env("MAX_BODY_BYTES", String(8 * 1024 * 1024))),
+	maxTokens: Number(env("MAX_TOKENS_PER_GRANT", String(20_000_000))),
 	maxTtlSeconds: Number(env("MAX_TTL_SECONDS", String(12 * 60 * 60))),
 };
 
@@ -51,6 +52,7 @@ interface Grant {
 	hash: string;
 	report: string;
 	expiresAt: number;
+	tokens: number;
 }
 
 interface Route {
@@ -71,6 +73,7 @@ const forwardedHeaders = ["content-type", "accept", "anthropic-version", "anthro
 const sessionHeaders = ["x-session-affinity", "x-opencode-session", "x-session-id", "x-parent-session-id", "session_id", "x-client-request-id"];
 const returnedHeaders = ["content-type", "cache-control", "request-id", "x-request-id", "retry-after"];
 const meridianSource = /^(fork-side-call|subagent-[A-Za-z0-9._:-]{1,64})$/;
+const vercelFields = new Set(["model", "messages", "system", "tools", "tool_choice", "max_tokens", "temperature", "top_p", "top_k", "stop_sequences", "stream", "thinking", "output_config"]);
 const reportId = /^[A-Za-z0-9-]{1,64}$/;
 
 const grantsPath = join(config.dataDir, "grants.json");
@@ -79,7 +82,8 @@ const active = new Map<string, number>();
 
 function loadGrants(): Grant[] {
 	try {
-		return JSON.parse(readFileSync(grantsPath, "utf8")).grants;
+		const now = Date.now();
+		return (JSON.parse(readFileSync(grantsPath, "utf8")).grants as Grant[]).filter((grant) => grant.expiresAt > now);
 	} catch (error) {
 		if ((error as NodeJS.ErrnoException).code === "ENOENT") return [];
 		throw error;
@@ -110,7 +114,7 @@ function grantFor(token: string): Grant | undefined {
 function mint(report: string, ttlSeconds: number) {
 	const key = `drh_${randomBytes(32).toString("base64url")}`;
 	const expiresAt = Date.now() + ttlSeconds * 1000;
-	grants = [...liveGrants().filter((grant) => grant.report !== report), { hash: digest(key).toString("hex"), report, expiresAt }];
+	grants = [...liveGrants().filter((grant) => grant.report !== report), { hash: digest(key).toString("hex"), report, expiresAt, tokens: 0 }];
 	saveGrants();
 	return { key, expiresAt };
 }
@@ -170,8 +174,11 @@ function upstreamHeaders(request: IncomingMessage, route: Route, grant: Grant): 
 	}
 	for (const name of sessionHeaders) {
 		const value = request.headers[name];
-		if (typeof value === "string" && value.length <= 256) headers[name] = namespaced(grant.report, value);
+		if (value === undefined) continue;
+		if (typeof value !== "string" || value.length > 256) throw new HttpError(400, `${name} must be one value of at most 256 characters`);
+		headers[name] = namespaced(grant.report, value);
 	}
+	headers["x-session-affinity"] ??= namespaced(grant.report, "");
 	const source = request.headers["x-meridian-source"];
 	if (typeof source === "string" && meridianSource.test(source)) headers["x-meridian-source"] = source;
 	headers["x-meridian-agent"] = "pi";
@@ -179,15 +186,75 @@ function upstreamHeaders(request: IncomingMessage, route: Route, grant: Grant): 
 	return headers;
 }
 
-async function upstreamBody(request: IncomingMessage, route: Route): Promise<{ body?: string; model?: string }> {
+async function upstreamBody(request: IncomingMessage, route: Route, grant: Grant): Promise<{ body?: string; model?: string }> {
 	if (route.method === "GET") return {};
-	const payload = await readJson(request);
+	let payload = await readJson(request);
 	const model = payload.model;
 	if (typeof model !== "string" || !route.models?.has(model)) throw new HttpError(403, `model ${String(model)} is not allowed on this route`);
 	if (route.upstream === "vercel") {
+		payload = Object.fromEntries(Object.entries(payload).filter(([field]) => vercelFields.has(field)));
 		payload.providerOptions = { gateway: { disallowPromptTraining: true, inferenceRegion: { scope: "zone", geoRegion: "us" } } };
+	} else {
+		delete payload.metadata;
+		delete payload.fallbacks;
+		delete payload.client_metadata;
+		delete payload.previous_response_id;
+		if (typeof payload.prompt_cache_key === "string") payload.prompt_cache_key = namespaced(grant.report, payload.prompt_cache_key);
 	}
 	return { body: JSON.stringify(payload), model };
+}
+
+const usageFields = ["input_tokens", "output_tokens", "cache_creation_input_tokens"];
+
+function usageOf(event: unknown): Record<string, unknown> | undefined {
+	if (!isObject(event)) return undefined;
+	for (const holder of [event, event.message, event.response]) {
+		if (isObject(holder) && isObject(holder.usage)) return holder.usage;
+	}
+	return undefined;
+}
+
+function meter(contentType: string): { stream: Transform; tokens: () => number } {
+	const usage: Record<string, number> = {};
+	const sse = contentType.includes("text/event-stream");
+	let pending = "";
+	const consume = (text: string) => {
+		let event: unknown;
+		try {
+			event = JSON.parse(text);
+		} catch {
+			return;
+		}
+		const found = usageOf(event);
+		if (!found) return;
+		for (const field of usageFields) {
+			const value = found[field];
+			if (typeof value === "number") usage[field] = value;
+		}
+	};
+	const consumeLine = (line: string) => {
+		if (line.startsWith("data:") && line.includes("usage")) consume(line.slice(5).trim());
+	};
+	const stream = new Transform({
+		transform(chunk: Buffer, _encoding, callback) {
+			pending += chunk.toString("utf8");
+			if (sse) {
+				const lines = pending.split("\n");
+				pending = lines.pop() ?? "";
+				lines.forEach(consumeLine);
+			} else if (pending.length > config.maxBodyBytes) {
+				pending = "";
+			}
+			callback(null, chunk);
+		},
+		flush(callback) {
+			if (sse) consumeLine(pending);
+			else consume(pending);
+			pending = "";
+			callback();
+		},
+	});
+	return { stream, tokens: () => Object.values(usage).reduce((sum, value) => sum + value, 0) };
 }
 
 function upstreamUrl(route: Route, requestUrl: URL): string {
@@ -196,9 +263,9 @@ function upstreamUrl(route: Route, requestUrl: URL): string {
 	return `${base}${route.path}${query}`;
 }
 
-async function proxy(request: IncomingMessage, response: ServerResponse, route: Route, grant: Grant, requestUrl: URL) {
-	const started = Date.now();
-	const { body, model } = await upstreamBody(request, route);
+async function proxy(request: IncomingMessage, response: ServerResponse, route: Route, grant: Grant, requestUrl: URL, entry: Record<string, unknown>) {
+	const { body, model } = await upstreamBody(request, route, grant);
+	entry.model = model;
 	const abort = new AbortController();
 	response.on("close", () => {
 		if (!response.writableFinished) abort.abort();
@@ -215,24 +282,41 @@ async function proxy(request: IncomingMessage, response: ServerResponse, route: 
 		if (value) headers[name] = value;
 	}
 	response.writeHead(upstream.status, headers);
-	if (upstream.body) await pipeline(Readable.fromWeb(upstream.body), response);
-	else response.end();
-	log({ report: grant.report, route: `${route.method} ${requestUrl.pathname}`, model, status: upstream.status, ms: Date.now() - started });
+	entry.status = upstream.status;
+	if (!upstream.body) {
+		response.end();
+		return;
+	}
+	const usage = meter(headers["content-type"] ?? "");
+	try {
+		await pipeline(Readable.fromWeb(upstream.body), usage.stream, response);
+	} finally {
+		entry.tokens = usage.tokens();
+		grant.tokens = (grant.tokens ?? 0) + usage.tokens();
+		saveGrants();
+	}
 }
 
 async function handleInference(request: IncomingMessage, response: ServerResponse) {
-	const requestUrl = new URL(request.url ?? "/", "http://broker");
-	const route = routes.get(`${request.method} ${requestUrl.pathname}`);
-	if (!route) throw new HttpError(404, "not found");
 	const key = presentedKey(request);
 	const grant = key ? grantFor(key) : undefined;
 	if (!grant) throw new HttpError(401, "invalid or expired key");
+	const requestUrl = new URL(request.url ?? "/", "http://broker");
+	const route = routes.get(`${request.method} ${requestUrl.pathname}`);
+	if (!route) throw new HttpError(404, "not found");
+	if ((grant.tokens ?? 0) >= config.maxTokens) throw new HttpError(429, "this report has used its token allowance");
 	const running = active.get(grant.report) ?? 0;
 	if (running >= config.maxConcurrency) throw new HttpError(429, "too many concurrent requests for this report");
 	active.set(grant.report, running + 1);
+	const started = Date.now();
+	const entry: Record<string, unknown> = { report: grant.report, route: `${route.method} ${requestUrl.pathname}` };
 	try {
-		await proxy(request, response, route, grant, requestUrl);
+		await proxy(request, response, route, grant, requestUrl, entry);
+	} catch (error) {
+		entry.error = error instanceof HttpError ? error.status : String(error);
+		throw error;
 	} finally {
+		log({ ...entry, ms: Date.now() - started, used: grant.tokens ?? 0 });
 		const remaining = (active.get(grant.report) ?? 1) - 1;
 		if (remaining > 0) active.set(grant.report, remaining);
 		else active.delete(grant.report);
@@ -253,7 +337,7 @@ async function handleAdmin(request: IncomingMessage, response: ServerResponse) {
 	if (!isAdmin(request)) throw new HttpError(401, "invalid admin token");
 	const { pathname } = new URL(request.url ?? "/", "http://broker");
 	if (request.method === "GET" && pathname === "/grants") {
-		sendJson(response, 200, liveGrants().map(({ report, expiresAt }) => ({ report, expiresAt })));
+		sendJson(response, 200, liveGrants().map(({ report, expiresAt, tokens }) => ({ report, expiresAt, tokens: tokens ?? 0 })));
 		return;
 	}
 	if (request.method === "POST" && pathname === "/grants") {
