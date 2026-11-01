@@ -1,0 +1,72 @@
+#!/usr/bin/env fish
+
+function fail
+    echo "image: $argv" >&2
+    exit 1
+end
+
+set -g repo (realpath (status dirname)/..)
+set -g base (string trim < $repo/image/base-ami)
+set -g tmp (mktemp -d)
+set -g builder
+
+function cleanup --on-event fish_exit
+    test -n "$builder"; and aws ec2 terminate-instances --instance-ids $builder >/dev/null
+    rm -rf $tmp
+end
+
+tar -C $repo/image -czf $tmp/image.tgz build.sh files
+printf '#cloud-config\nwrite_files:\n  - path: /root/image.tgz\n    encoding: b64\n    permissions: "0600"\n    content: %s\nruncmd:\n  - [sh, -c, "mkdir -p /root/image && tar -xzf /root/image.tgz -C /root/image && bash /root/image/build.sh"]\n' \
+    (base64 < $tmp/image.tgz | string join '') >$tmp/user-data
+test (wc -c < $tmp/user-data) -lt 16384; or fail "user data is over EC2's 16 KB limit"
+
+set builder (aws ec2 run-instances --image-id $base --instance-type c7g.xlarge \
+    --user-data file://$tmp/user-data \
+    --instance-initiated-shutdown-behavior stop \
+    --block-device-mappings '[{"DeviceName":"/dev/xvda","Ebs":{"VolumeSize":30,"VolumeType":"gp3","Encrypted":true,"DeleteOnTermination":true}}]' \
+    --metadata-options HttpTokens=required,HttpPutResponseHopLimit=1 \
+    --tag-specifications 'ResourceType=instance,Tags=[{Key=Name,Value=dr-hands-image-builder},{Key=dr-hands,Value=image-builder}]' \
+    --query 'Instances[0].InstanceId' --output text)
+or fail "could not launch the builder"
+echo "Building on $builder from $base"
+
+set -l state
+for i in (seq 180)
+    set state (aws ec2 describe-instances --instance-ids $builder --query 'Reservations[0].Instances[0].State.Name' --output text)
+    test "$state" = stopped; and break
+    sleep 15
+end
+test "$state" = stopped; or fail "the builder did not finish within 45 minutes"
+
+set -l console (aws ec2 get-console-output --instance-id $builder --latest --query Output --output text)
+if not string match -q '*DR-HANDS-IMAGE-OK*' -- $console
+    printf '%s\n' $console | tail -40 >&2
+    fail "the build failed; the end of the builder's console is above"
+end
+
+set -l name dr-hands-(date -u +%Y%m%d-%H%M%S)
+set -l ami (aws ec2 create-image --instance-id $builder --name $name \
+    --tag-specifications "ResourceType=image,Tags=[{Key=dr-hands,Value=image}]" "ResourceType=snapshot,Tags=[{Key=dr-hands,Value=image}]" \
+    --query ImageId --output text)
+or fail "could not create the image"
+echo "Creating $ami"
+set -l image_state
+for i in (seq 120)
+    set image_state (aws ec2 describe-images --image-ids $ami --query 'Images[0].State' --output text)
+    test "$image_state" = available; and break
+    test "$image_state" = failed; and fail "image $ami failed"
+    sleep 15
+end
+test "$image_state" = available; or fail "image $ami was not available within 30 minutes"
+
+for old in (aws ec2 describe-images --owners self --filters Name=tag:dr-hands,Values=image --query "Images[?ImageId!='$ami'].ImageId" --output text | string split -n \t)
+    set -l snapshots (aws ec2 describe-images --image-ids $old --query 'Images[0].BlockDeviceMappings[].Ebs.SnapshotId' --output text | string split -n \t)
+    aws ec2 deregister-image --image-id $old
+    for snapshot in $snapshots
+        aws ec2 delete-snapshot --snapshot-id $snapshot
+    end
+    echo "Removed old image $old"
+end
+
+echo $ami >$repo/image/ami
+echo "Image $ami is ready and recorded in image/ami"

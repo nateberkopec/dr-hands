@@ -1,0 +1,8 @@
+[Unit]
+Description=Power off a dr-hands box 12 hours after boot
+
+[Timer]
+OnBootSec=12h
+
+[Install]
+WantedBy=timers.target

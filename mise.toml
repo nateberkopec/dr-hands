@@ -5,7 +5,12 @@ jq = "1.8.2"
 
 [env]
 DR_HANDS_REGION = "us-east-2"
+AWS_REGION = "us-east-2"
 
 [tasks.bootstrap-aws]
 description = "One-time: create the dr-hands AWS account and deploy key. Run after `aws login` as root."
 run = "bin/bootstrap-aws"
+
+[tasks.image]
+description = "Build the box image and record its ID in image/ami"
+run = "op run --env-file=aws.env -- bin/image"
