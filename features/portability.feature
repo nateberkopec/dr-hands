@@ -13,7 +13,7 @@ Feature: Run dr-hands from macOS or Linux
 
   Scenario Outline: A full triage works from each platform
     Given I work from a <platform> machine
-    When I add the fixture report "plain", attach to it, and remove it
+    When I add the fixture report "plain" through its fixture source, attach to the run, and remove it
     Then each step succeeds
 
     Examples:

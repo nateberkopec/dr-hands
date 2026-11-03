@@ -2,7 +2,7 @@ Feature: The agent cannot get out
   The agent runs as the user "agent" on its box. We treat it as the attacker.
 
   Background:
-    Given I added the fixture report "plain"
+    Given I added the fixture report "plain" through its fixture source
 
   Scenario Outline: The agent cannot reach what it should not
     When the agent tries to reach <target>
@@ -14,7 +14,7 @@ Feature: The agent cannot get out
       | example.com on port 443, without the proxy   |
       | the cloud metadata service                   |
       | my laptop over the tailnet                   |
-      | another report's box                         |
+      | another run's box                            |
       | example.com through the proxy                |
       | github.com on port 22                        |
 
@@ -35,5 +35,5 @@ Feature: The agent cannot get out
     And the box can start no connection to any tailnet device
 
   Scenario: The box holds nothing worth stealing
-    Then the box has no AWS credentials, GitHub token or Tailscale key
-    And the box's only secret is its own report's OpenRouter key
+    Then the box has no AWS, GitHub, report-source or Tailscale credential
+    And the box's only secret is its own run's OpenRouter key

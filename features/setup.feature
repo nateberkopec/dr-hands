@@ -36,6 +36,6 @@ Feature: One-time setup
 
   Scenario: A stale image blocks a new box
     Given a stack file changed after the image was built
-    When I add the fixture report "plain"
+    When I add the fixture report "plain" through its fixture source
     Then add refuses and tells me to run image
     And no box, tailnet device or OpenRouter key was made

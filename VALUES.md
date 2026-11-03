@@ -7,6 +7,7 @@ These are the rules we design dr-hands by. The feature files in `features/` say 
 Every report is hostile, and we treat the agent as the attacker. [SECURITY.md](SECURITY.md#what-we-assume) explains the threat model, [how dr-hands protects you](SECURITY.md#how-dr-hands-protects-you), and [the risks we accept](SECURITY.md#risks-we-accept). Two design rules follow from it:
 
 - **Enforce rules where a hostile box cannot reach them.** A rule on the box holds only until the agent gets root. So the rules that matter live outside it: cloud firewalls, the tailnet policy, and the OpenRouter workspace.
+- **Trust intake code, never intake content.** A report source runs as you and must be trusted. Every snapshot it produces remains hostile and gets the same scan and isolation, whatever its origin.
 - **Teardown proves itself.** Removing a box checks that nothing survived, and fails loudly when something did.
 
 When we accept a new risk, we add it to SECURITY.md.
