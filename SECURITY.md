@@ -1,6 +1,6 @@
 # Security
 
-dr-hands specifies disposable runs for hostile investigations and experiments. Triage and gravity are declarative workflows in the same tool, not separate security engines. This page defines the security boundaries and their assumptions.
+dr-hands specifies disposable runs for hostile investigations and experiments. Private analysis, public browsing, and gravity share one fixed lifecycle, not separate security engines. This page defines the security boundaries and their assumptions.
 
 ## Report a problem
 
@@ -15,13 +15,15 @@ Every report is hostile, regardless of its source. Its author may control:
 - descriptive source metadata and guest-produced findings;
 - the agent itself, through prompt injection.
 
-Report intake accepts only the [structured JSON text contract](docs/reports.md). Exporters and their credentials are outside scope. The local tool validates structure and bounds without rendering content, executing code, importing attachments, or following links. Text is data at this boundary, not trusted content; parsers and terminal handling still need care.
+Report intake accepts only the [structured JSON text contract](schemas/report.schema.json). Exporters and their credentials are outside scope. The local tool validates structure and bounds without rendering content, executing code, importing attachments, or following links. Text is data at this boundary, not trusted content; parsers and terminal handling still need care.
 
-The operator selects declarative workflows, targets, and immutable images independently of the report. A manifest and input digests identify what enters a run; they do not establish that it is benign.
+The operator selects immutable role images and declares run-specific inputs independently of the report. dr-hands owns the lifecycle and role interfaces. It accepts no local hooks, startup-command overrides, pre-agent scripts, or custom lifecycle steps. Images may start their own role processes inside the boundary; process ordering cannot keep data away from guest root.
+
+The inventory names each image, every input, its destination and digest, and its sensitivity. Image classification covers all layers, including deleted-but-recoverable contents. Missing sensitivity means private. A public label permits disclosure; it does not establish safety. Neither an immutable reference nor an input digest proves that contents match the operator's classification.
 
 We assume the agent has root from the start. The report is infected, and the target is infected too: the agent may compromise it at any time. Guest root is an initial condition, not an escape.
 
-The report is not the secret. Its author already has it. We protect:
+Reports, comments, URLs, application source, images, and derived findings may be confidential. An author knowing some report contents does not authorize disclosure of the full input to everyone else. We protect:
 
 - your laptop, its keys, and your logins
 - operator credentials, including credentials for report sources that dr-hands never receives
@@ -34,11 +36,11 @@ We cannot ensure the operator's cognitive security. Reports, agent output, and e
 
 **One isolated boundary per run.** Each workflow's roles and guest-writable resources belong to one disposable run. No role gets operator, production, cloud, report-source, or inference-administration credentials. Management is operator-initiated. Guest root does not confer access to the workstation, private networks, other runs, or provider metadata/control-plane endpoints.
 
-**Network policy outside the guest.** Triage permits public HTTP(S) so the agent can follow hostile links. Gravity permits only declared role connections and bounded inference. A provider must enforce the selected policy outside the guest, including actual destination addresses, redirects, IPv6, and DNS rebinding. It must reject a policy it cannot enforce. See [Workflows](docs/workflows.md#mandatory-boundaries).
+**Network policy outside the guest.** Public browsing permits public HTTP(S) only when every image and input is explicitly public. Private analysis and gravity permit declared role connections and bounded inference, not general web access. A provider must enforce the selected policy outside the guest, checking actual destination addresses and every redirect, including IPv6 and DNS rebinding. Workstation, unrelated private networks, metadata/control-plane endpoints, and other runs remain denied. A provider must reject a policy it cannot enforce. See the policy comments in [config.example.toml](config.example.toml).
 
 **Bounded inference, not a broker.** A role may hold its own expiring OpenRouter credential under a hard run budget and model allowlist. It never holds an administration key. Hosted tools are disabled and zero data retention is required. These are required service capabilities, not facts established merely by successful authentication.
 
-**Inventory before execution.** Input snapshots, workflow declarations, immutable image identities, and the guest-writable resource inventory define the run. There is no shared persistent storage that a guest may infect outside that inventory.
+**Inventory and approval before execution.** Freeze and show immutable image identities, all input destinations/digests/classifications, network policy, inference recipients, budget, and lifetime. Reject private data plus public-web access before asking for approval; approval cannot override the rejection. A material change invalidates approval. Deliver only inventoried inputs at fixed paths, without live host mounts, undeclared files, or shared guest-writable persistent storage.
 
 **Opaque output and explicit export.** Guest-produced evidence crosses into fixed local filenames only through explicit export. It is never automatically rendered, executed, extracted, or treated as a local path. It remains hostile even after removal. Reviewing and applying a patch is a separate operator action.
 
@@ -54,7 +56,31 @@ The ambition is that escape requires a CVSS 9+ zero-day in a mature upstream bou
 
 Executing a malicious model, package, or serialized payload inside a guest is in scope and already covered by the root-compromise assumption. Reaching another tenant, provider host, credentials, or management service is an escape and must cross the declared upstream boundary. This states the threat class raised by the HuggingFace-style escape question; it does not claim to analyze or prevent any particular incident.
 
-Public-web triage deliberately permits communication beyond the disposable run. Disclosing report contents or sending hostile public HTTP(S) requests is an accepted risk of that workflow, not an upstream-boundary failure. Gravity does not permit those paths.
+Public browsing deliberately permits communication beyond the disposable run. Disclosing explicitly public inputs or sending hostile public HTTP(S) requests is an accepted risk, not an upstream-boundary failure. Private input disclosure through general web access is not accepted: such runs are rejected. Restricted runs do not permit those paths.
+
+## The lethal trifecta
+
+Evaluate three properties together: access to private data, exposure to hostile content, and the ability to communicate externally. Every run already assumes hostile content and guest root; we do not claim that a trusted prompt or a public base image removes that leg. Minimize sensitive inputs and recipients rather than treating the count as a safety certificate.
+
+| Run policy | Private data | Hostile content | External recipients |
+| --- | --- | --- | --- |
+| Private analysis | Allowed and inventoried | Assumed | Configured inference service and its serving providers only |
+| Public browsing | Forbidden, including image layers and derived data | Assumed | Public HTTP(S) and configured inference |
+| Reference gravity | Public/synthetic images and data | Assumed | Configured inference only; role connections stay within the chamber |
+
+For policy decisions, all roles that can exchange data belong to the same disclosure boundary. A private target and a public-network agent in the same run still combine all three legs. The conservative rule rejects public-web access if any image/input in the run is private or unclassified. Runtime input additions and network-policy widening are not allowed.
+
+Private data and derived outputs never automatically become public. A result from a run with any private input/image inherits private sensitivity. Public browsing can feed explicitly exported, still-hostile material into a separate private analysis run; no private-to-public transfer or in-place transition is supported. A sensitive URL or search query also counts as private data. Deleting a file or changing stages cannot erase guest memory, hidden copies, or prior communications.
+
+Inference is an explicit accepted disclosure, not zero egress. A compromised guest may place any readable data in prompts. The configured service, its serving providers, and permitted processing policy must be shown before approval. Hard budgets, disabled hosted tools, and zero retention constrain service use but do not prevent prompt disclosure. This is the named recipient exception, not permission to reach arbitrary inference services or public endpoints.
+
+Classification is an operator declaration, not automated proof that an image contains no secrets. Misclassification can expose data. Production and operator credentials remain forbidden regardless of sensitivity labels; disposable run-scoped inference credentials are separately bounded capabilities, not reusable private inputs.
+
+## Lifecycle authority
+
+The bundled deterministic lifecycle runs on the workstation without a daemon. Agent frameworks execute only inside guest images. Users customize images and data, not local lifecycle code. The runner stores bounded, non-secret control-plane records; it must not persist credentials or report contents in step output, parameters, or logs.
+
+Approval precedes provisioning. Export is explicit. Cancellation, failure, expiry, and removal never wait for approval. An absent laptop may pause orchestration while guest work continues, but authority expiry remains externally enforced. Resume reconciles the frozen inventory, run generation, deadline, and external state before any replay; expired or revoking runs can only continue cleanup. An engine exit handler cannot guarantee cleanup after process loss. Independent removal and reconciliation remain required.
 
 ## Gravity machine
 
@@ -149,7 +175,8 @@ The models do not prove AWS or OpenRouter correct, prove arbitrary scopes, or pr
 ### Report triage
 
 - A structurally valid text report can still contain prompt injection or exploit parser and presentation bugs. Validation is not sanitization.
-- Public HTTP(S) lets a compromised agent disclose report contents, follow attacker-controlled links, and send abusive requests to reachable services. Those effects can outlive the run.
+- Public HTTP(S) lets a compromised agent disclose public inputs, follow attacker-controlled links, and send abusive requests to reachable services. Those effects can outlive the run. Misclassifying private material as public can expose it.
+- Private analysis accepts disclosure of readable data to the configured inference service and its serving providers. Model instructions and zero-retention settings do not eliminate that disclosure.
 - Guest root can alter guest policy and corrupt the experiment. Only external enforcement is a security boundary.
 - Exported files can attack the software or person that later opens them. Fixed filenames and opaque transfer do not make contents safe.
 - Report exporters are outside dr-hands. The operator is responsible for the tools used before supplying a report.

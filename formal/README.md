@@ -1,6 +1,6 @@
 # Formal verification
 
-The Alloy network model covers the restricted gravity workflow only; it does not model public-web triage or the general declarative workflow interface. The lifecycle model remains an abstract reference for shared Run behavior, not a proof of the new manifest/configuration contracts.
+The Alloy network model covers the restricted reference gravity workflow only; it does not model public browsing, image/input classification, or the lethal-trifecta policy. The lifecycle model is an abstract reference for shared Run behavior, not proof of the Dagu integration, fixed role interfaces, or configuration contracts.
 
 This is the deepest layer of the gravity acceptance pyramid. Start at [GRAVITY.md](../GRAVITY.md), then read the [threat model](../SECURITY.md#gravity-machine) and [behavioral acceptance](https://github.com/nateberkopec/dr-hands/blob/archive/design-stack-before-spec-only/features/gravity.feature) before reading the models.
 

@@ -2,50 +2,46 @@
 
 This repository is a specification, not an implementation.
 
-Investigate hostile security reports and exercise attacker frameworks against disposable targets without putting your workstation inside the experiment.
+Investigate hostile reports and exercise attacker frameworks against disposable targets without putting your workstation inside the experiment.
 
-## The problem
+## Images, data, and a fixed boundary
 
-A report can lead through malicious links, prompt injection, exploit code, packages, and model files. We assume the agent has root and any target it touches is infected. The goal is a clear, disposable technical boundary, not a trustworthy agent. dr-hands cannot ensure the cognitive security of the person reading the report or its results.
+Users bring immutable images and declared inputs, not lifecycle code. Images implement fixed role interfaces; dr-hands owns provisioning, input delivery, role startup, observation, and removal. No local setup hooks, startup-command overrides, pre-agent scripts, or custom lifecycle steps are accepted.
 
-## One tool, pluggable workflows
+An inventory distinguishes public software images from potentially sensitive images, reports, and application source. Every image layer and input is classified; missing sensitivity means private. Public does not mean trusted. We assume guest root and infected targets, so the inventory describes everything accessible inside the boundary, not just the agent's initial process.
 
-A **Workflow** declares roles, inputs, permitted connections, and outputs. A **Run** is one execution with its own resources, authority, deadline, and evidence. Triage and gravity share the same lifecycle and cleanup rules.
+## Avoid the lethal trifecta
 
-- **Triage:** an agent investigates a structured report and may follow public HTTP(S) links from inside the isolated run. This accepts disclosure to public services and the risk of hostile outbound requests, while keeping private and management networks out of reach.
-- **Gravity:** an attacker framework exercises a disposable target without general Internet access. ARTEX and RubyGems.org are the reference roles, not fixed engine components. The allowed external service is bounded OpenRouter inference.
+Before provisioning, show whether the run has private data, hostile content, and external communication. Hostile content is always assumed. A run with private images or inputs cannot have public-web access, and there is no override.
 
-Custom workflows use declarative manifests, not local lifecycle hooks. Provisioners implement infrastructure and external policy enforcement. A workflow cannot override mandatory isolation. See [Workflows](docs/workflows.md), the [provisioner contract](provisioners/README.md), and the [glossary](GLOSSARY.md).
+- **Private analysis:** private reports or source, hostile content, and access only to the configured inference service.
+- **Public browsing:** explicitly public images and inputs, hostile content, and public HTTP(S). Public requests and disclosures cannot be undone by teardown.
+- **Gravity:** an attacker and disposable target, restricted role connections, and bounded inference. ARTEX and RubyGems.org are reference images, not separate lifecycle engines.
 
-## Report data, not source plugins
+Use separate public browsing and private analysis runs, not stages on the same guest. Browsing results remain hostile when imported into private analysis. Private inputs and derived outputs cannot flow into a public run. Disclosure to the configured inference service and its serving providers is accepted and shown during approval; zero retention is not absence of disclosure.
 
-Supply a UTF-8 JSON report with a version, title, body, and optional comments and provenance. How you obtain it is up to you. GHSA and HackerOne exporters are outside this repository; dr-hands does not execute them or manage their credentials.
+## Read the contracts where they are used
 
-The local tool checks structure and size, but never treats the content as safe, follows its links, or renders its markup. The operator selects the workflow and target separately. [Report input](docs/reports.md) defines the contract.
-
-## Configuration flow
-
-Keep ignored `config.toml` beside tracked [`config.example.toml`](config.example.toml). It selects declarative workflow manifests and nests provider-specific settings. Secret aliases refer to a separate fnox file; dr-hands resolves them automatically without a manual `fnox exec` wrapper.
+- [`config.example.toml`](config.example.toml): annotated settings, role images, input inventory, classifications, and network policy. Copy to ignored `config.toml`.
+- [`fnox.example.toml`](fnox.example.toml): annotated secret-store aliases. Copy to ignored `fnox.local.toml`; dr-hands resolves required aliases automatically.
+- [`schemas/report.schema.json`](schemas/report.schema.json): report fields, bounds, and intake rules. Obtaining reports is outside scope.
+- [`bin/dr-hands`](bin/dr-hands) and [`cli/`](cli/): command contracts, approval, side effects, and failure behavior.
+- [`workflows/lifecycle.yaml`](workflows/lifecycle.yaml): bundled Dagu lifecycle; [`workflows/remove.yaml`](workflows/remove.yaml): independent removal. These are tool-owned graphs, not user inputs.
+- [`provisioners/README.md`](provisioners/README.md): external enforcement and resource ownership.
 
 ```fish
-dr-hands init
-dr-hands check
-dr-hands doctor --workflow triage
-dr-hands run --workflow triage --report ./report.json
-dr-hands export RUN
-dr-hands remove RUN
+bin/dr-hands --help
+bin/dr-hands help run
+bin/dr-hands help resume
+bin/dr-hands help lint-report
 ```
 
-`init` copies the example without overwriting an existing configuration. `check` is local and does not resolve secrets. `doctor` checks selected credentials and services without creating resources. Only the explicit run command provisions a run. Use `--config /path/to/config.toml` to select another configuration; there are no implicit global or environment-variable overrides.
+The report linter uses Python 3 and [`requirements-lint.txt`](requirements-lint.txt). It validates structure without rendering contents or fetching links. Every other command explains its contract; help exits successfully, while action invocations report that no action was performed and exit nonzero.
 
-[Setup](docs/setup.md) describes the sequence. [Configuration](docs/configuration.md) specifies the file and fnox integration. The example model is DeepSeek V4.1 Flash 1017; `doctor` must check current OpenRouter availability and policy support rather than assume it.
+## Security and evidence
 
-## Security and teardown
+[VALUES.md](VALUES.md) states the design principles. [GLOSSARY.md](GLOSSARY.md) defines the domain language. [SECURITY.md](SECURITY.md) defines the threat model, the trifecta policy, and accepted inference disclosure. Technical containment does not ensure the cognitive security of the operator.
 
-[VALUES.md](VALUES.md) states the problems and design principles. [SECURITY.md](SECURITY.md) defines assumptions, boundaries, and accepted risks. The ambition is that escape would require a CVSS 9+ zero-day in mature upstream infrastructure; the actual requirement is that every escape path cross a named upstream security boundary, with as few such assumptions as possible. No numeric severity or novelty of a future exploit is guaranteed.
+Removal destroys all guest-writable runtime resources, revokes authority, and verifies absence. Explicitly exported evidence survives as opaque, still-hostile files. Externally enforced expiry does not depend on the laptop or workflow runner. Reconnection resumes reconciliation and cleanup without extending the deadline.
 
-Every run has bounded inference authority and an expiry. Removal destroys all guest-writable runtime resources, revokes authority, and verifies absence. Explicitly exported evidence may survive as opaque, still-hostile files. Public-web requests and copies made by external services cannot be undone by teardown.
-
-## Specifications and verification
-
-[GRAVITY.md](GRAVITY.md) describes the restricted gravity workflow and its [Alloy and TLA+ specifications](formal/README.md). The gravity network model does not prove public-web triage or arbitrary workflow manifests. The [archived design stack](https://github.com/nateberkopec/dr-hands/tree/archive/design-stack-before-spec-only) preserves earlier versions and their Gherkin scenarios.
+[GRAVITY.md](GRAVITY.md) describes the restricted reference workflow and its [Alloy and TLA+ models](formal/README.md). Those models do not prove public-web browsing, input classification, or the configuration contract. The [archived design stack](https://github.com/nateberkopec/dr-hands/tree/archive/design-stack-before-spec-only) preserves earlier versions and their Gherkin scenarios.

@@ -17,8 +17,16 @@ An immutable copy of the input data and declarations selected for one run.
 _Avoid_: Advisory copy
 
 **Workflow**:
-A declaration of the roles, inputs, permitted connections, and outputs needed for an investigation or experiment.
-_Avoid_: Execution engine, local hook
+A selection of role images and declared inputs under the tool's fixed lifecycle and network policy.
+_Avoid_: User script, local hook
+
+**Image**:
+An immutable software environment for a role, including all its layers and embedded data. Its sensitivity is independent of whether its contents are trustworthy.
+_Avoid_: Safe base, trusted image
+
+**Input**:
+An operator-declared item supplied to a run, with an identity, destination, and sensitivity. Inputs include reports and application source, separately from reusable images.
+_Avoid_: Implicit mount, startup hook
 
 **Role**:
 One participant in a workflow, such as an investigating agent, attacker framework, or disposable target.

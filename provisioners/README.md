@@ -1,10 +1,10 @@
 # Provisioners
 
-A provisioner implements a Run's infrastructure and externally enforced security boundary. Workflows declare roles and requirements; they do not run local lifecycle hooks or choose their own infrastructure credentials.
+A provisioner implements a Run's infrastructure and externally enforced security boundary. Users select role images and declare inputs; they do not supply lifecycle code, startup-command overrides, or infrastructure credentials inside workloads.
 
 ## Selection and configuration
 
-`config.toml` selects `provisioner = "aws"` or another explicitly installed integration. Settings belong under `provisioners.<name>`, with fnox aliases under `provisioners.<name>.secrets`. A report or workflow manifest cannot supply a local executable path.
+`config.toml` selects `provisioner = "aws"` or another explicitly installed integration. Settings belong under `provisioners.<name>`, with fnox aliases under `provisioners.<name>.secrets`. A report or workload configuration cannot supply a local executable path.
 
 Provisioner code operates with operator authority and must be installed deliberately. This is distinct from guest role code, which is assumed malicious, and report data, which is never executed locally. Using another provider requires reviewing its named security boundaries and supported policies; interface compatibility alone does not establish containment.
 
@@ -14,15 +14,17 @@ A provisioner must:
 
 - validate its configuration and declare the policies it can enforce;
 - check selected service capabilities without mutation during doctor;
-- resolve and verify immutable image references for declared roles;
+- resolve and verify immutable image references for fixed roles;
+- enforce an inventory of all image/input sensitivities and destinations, defaulting unclassified contents to private;
+- reject any private image/input combined with public-web access across the run;
 - create isolated role resources and enforce permitted paths outside the guests;
-- deny workstation, private-network, other-run, metadata, and management access;
+- deny workstation, unrelated private-network, other-run, metadata, and management access;
 - establish operator-initiated management and verify guest identity;
 - inventory every run-owned resource and capability by immutable run identity and generation;
 - remove partial or complete runs idempotently and observe external absence;
 - enumerate and sweep run-owned resources using provider state, not just local directories.
 
-The same lifecycle serves triage, gravity, and custom workflows. If a provider cannot enforce public-web restrictions or gravity's tighter policy, it must reject that workflow. A guest firewall is not a fallback for missing external enforcement.
+The same tool-owned lifecycle serves private analysis, public browsing, and gravity. If a provider cannot enforce public-web restrictions or gravity's tighter policy, it must reject that workflow. A guest firewall is not a fallback for missing external enforcement.
 
 Inference authority belongs to the selected inference service. The controller coordinates its revocation with provider cleanup; destroying compute alone does not mean a run is removed.
 

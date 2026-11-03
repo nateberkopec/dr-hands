@@ -1,0 +1,70 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "dr-hands report",
+  "description": "Hostile report text supplied by the operator. Obtaining or exporting it is outside dr-hands. No report-source executable or credential is accepted.",
+  "$comment": "The linter bounds encoded input to 1 MiB before parsing, requires UTF-8, rejects duplicate keys and non-JSON constants, and never echoes report contents. Schema validation checks structure, not safety. Markdown, HTML-looking text, code snippets, and URLs are data: never locally render, execute, fetch, template, or interpolate them. No attachments, Git bundles, target/image selection, or hooks are accepted. The operator-owned run inventory assigns sensitivity and destinations; source metadata cannot lower sensitivity or choose paths. Reports are copied to a fixed input filename and identified by a digest. A digest is not a safety certificate. A changed report starts a new run, not a source-specific refresh. Every run inventories all images and inputs independently; private reports cannot enter a public-web run. Inference-provider disclosure is accepted and displayed during approval. Public source provenance does not imply public contents.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["version", "title", "body"],
+  "properties": {
+    "version": {
+      "description": "Format version. Unsupported versions are rejected rather than guessed.",
+      "type": "integer",
+      "const": 1
+    },
+    "title": {
+      "description": "Nonempty report title, treated as hostile text rather than a filename or command.",
+      "type": "string",
+      "minLength": 1
+    },
+    "body": {
+      "description": "Nonempty security claim and supporting text. URLs are not fetched locally. Code snippets are not executed by intake.",
+      "type": "string",
+      "minLength": 1
+    },
+    "comments": {
+      "description": "Optional supporting comments; all content remains hostile. The count and total file-size bounds limit parser work, not malicious instructions.",
+      "type": "array",
+      "maxItems": 1000,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["body"],
+        "properties": {
+          "body": {
+            "description": "Nonempty supporting text, never instructions to the local controller.",
+            "type": "string",
+            "minLength": 1
+          }
+        }
+      }
+    },
+    "source": {
+      "description": "Optional provenance only. These strings are not executable names, paths, credentials, fetch instructions, or Run IDs.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["name", "reference"],
+      "properties": {
+        "name": {
+          "description": "Origin label such as github or hackerone; never selects a plugin.",
+          "type": "string",
+          "minLength": 1
+        },
+        "reference": {
+          "description": "Source-local reference such as a GHSA ID. It does not control resource identity or cause a network request.",
+          "type": "string",
+          "minLength": 1
+        }
+      }
+    }
+  },
+  "examples": [
+    {
+      "version": 1,
+      "title": "Example security claim",
+      "body": "Reproduction steps and https://example.com/supporting-material",
+      "comments": [{ "body": "Additional supporting text" }],
+      "source": { "name": "github", "reference": "GHSA-xxxx-xxxx-xxxx" }
+    }
+  ]
+}

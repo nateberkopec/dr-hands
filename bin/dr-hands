@@ -1,0 +1,67 @@
+#!/usr/bin/env bash
+# This Bash CLI is an executable interface specification, not the runtime.
+# Bash is not a commitment for future implementations. Command files describe
+# contracts; only lint-report performs real work. Lifecycle commands fail closed.
+set -euo pipefail
+
+root="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." && pwd)"
+
+usage() {
+    cat <<'HELP'
+Usage: dr-hands [--config PATH] COMMAND [ARGS]
+       dr-hands help COMMAND
+
+Commands:
+  init          Describe creation of personal configuration files
+  check         Describe local configuration and input checks
+  doctor        Describe non-mutating credential and service checks
+  run           Describe inventory, approval, and the fixed run lifecycle
+  resume        Describe reconciliation and resumption after interruption
+  export        Describe explicit opaque evidence export
+  remove        Describe revocation and verified teardown
+  lifecycle     Describe the bundled engine's internal lifecycle stages
+  lint-report   Validate a report against schemas/report.schema.json
+
+Run COMMAND --help for its contract. Help exits 0; documentation-only actions
+exit 3 and perform no work. Invalid CLI usage exits 2. lint-report exits 0 for
+valid structure, 1 for an invalid report, and 2 for usage or dependency errors.
+
+Configuration is ./config.toml or exactly one --config PATH. Relative settings
+resolve from the configuration directory; there is no environment/global merge.
+See the comments in config.example.toml and fnox.example.toml.
+HELP
+}
+
+if [[ "${1:-}" == --config ]]; then
+    if [[ $# -lt 3 || -z "$2" ]]; then
+        printf '%s\n' '--config requires a path and command.' >&2
+        exit 2
+    fi
+    shift 2
+fi
+
+command_name="${1:---help}"
+if [[ $# -gt 0 ]]; then shift; fi
+case "$command_name" in
+    -h|--help)
+        if [[ $# -ne 0 ]]; then exit 2; fi
+        usage
+        exit 0
+        ;;
+    help)
+        if [[ $# -eq 0 ]]; then usage; exit 0; fi
+        if [[ $# -ne 1 ]]; then exit 2; fi
+        command_name="$1"
+        set -- --help
+        ;;
+esac
+
+case "$command_name" in
+    init|check|doctor|run|resume|export|remove|lifecycle|lint-report)
+        DR_HANDS_ROOT="$root" exec bash "$root/cli/$command_name.sh" "$@"
+        ;;
+    *)
+        printf '%s\n' 'Unknown command. Use dr-hands --help.' >&2
+        exit 2
+        ;;
+esac

@@ -1,11 +1,21 @@
+# Copy this tracked example to adjacent, gitignored config.toml, or use
+# dr-hands init. init refuses to overwrite files and performs no network work.
+# Commands select ./config.toml, or exactly one --config PATH. Relative paths
+# resolve from that file's directory. No global/environment config merging,
+# implicit example fallback, or fallback to another provisioner is allowed.
+# Unknown/duplicate keys, wrong types, missing fields, unsupported versions,
+# invalid limits, and undeclared secret aliases are errors. Diagnostics name
+# fields and rules without echoing sensitive values.
 version = 1
+
+# Provider-specific settings belong under provisioners.<name>. An installed
+# provider must enforce the selected policy outside the guests or refuse it.
 provisioner = "aws"
 
-[workflows]
-triage = "workflows/triage.toml"
-gravity = "workflows/gravity.toml"
-
 [secrets]
+# fnox.example.toml documents this separate file. Alias names, never credentials,
+# belong here. dr-hands resolves selected aliases automatically through fnox;
+# no manual fnox exec wrapper or report-exporter credentials are involved.
 file = "fnox.local.toml"
 
 [provisioners.aws]
@@ -16,12 +26,107 @@ access_key_id = "aws_access_key_id"
 secret_access_key = "aws_secret_access_key"
 
 [inference]
+# The configured inference service and its serving providers receive prompts
+# and may therefore receive every byte readable inside the run. This disclosure
+# is accepted, displayed before approval, and distinct from general web egress.
+# Budget/expiry/model restrictions and disabled hosted tools must be enforced
+# by the service; zero retention is required but does not mean no disclosure.
 service = "openrouter"
 models = ["deepseek/deepseek-v4.1-flash-1017"]
+# Positive finite per-run dollar ceiling. This is an editable example, not a
+# hidden default. doctor checks current model and policy availability.
 budget_usd = 5
 
 [inference.secrets]
+# Operator administration alias; never copied into a guest. Guests receive
+# only disposable, bounded, expiring run credentials.
 admin_key = "openrouter_admin_key"
 
 [run]
+# Positive, at most twelve hours; authority expiry is independent of the
+# workstation, workflow runner, and guests. Cleanup never waits for approval.
 lifetime_hours = 12
+
+# Users select images and declare data, not lifecycle graphs, shell commands,
+# entrypoint overrides, local hooks, or pre-agent setup steps. The lifecycle
+# in workflows/lifecycle.yaml is maintained by dr-hands. Images implement a
+# fixed role interface: receive inputs at fixed paths, start their own role,
+# expose health and declared service ports, and write declared output files.
+# Build and publish images outside the run. Replace the placeholders below
+# with immutable provider image references or content digests before use.
+# Pinning identifies content; it does not attest safety or confidentiality.
+# Guest root may start any process. All contents/processes remain inside the
+# boundary; pre-agent ordering cannot hide data from the agent.
+
+[workflows.triage]
+# Hostile content is always assumed. Display the three legs before provisioning:
+# private data, hostile content, and externally reachable recipients.
+# Allowed network policies: inference-only or public-http. There is no option
+# to combine private images/inputs with public-http, even across different roles.
+network = "inference-only"
+
+[workflows.triage.roles.agent]
+image = "REPLACE_WITH_IMMUTABLE_AGENT_IMAGE"
+# public means every layer/content is permitted for public disclosure, not
+# trusted or harmless. private means potentially sensitive. Missing sensitivity
+# is private. Classify the entire image, including deleted files in old layers.
+sensitivity = "private"
+
+[[workflows.triage.inputs]]
+# Operator-owned inventory, not metadata read from the hostile report. Every
+# input has a fixed kind/destination, a recorded digest, and sensitivity.
+# Names and destinations must be unique; reject collisions and unlisted inputs.
+# Reports are validated with schemas/report.schema.json. Their source strings
+# cannot select targets, images, local paths, or network permissions.
+name = "report"
+kind = "report"
+path = "report.json"
+role = "agent"
+sensitivity = "private"
+
+# To supply private app source, add a source-tree input with a local path and
+# destination role. Snapshot only that tree; refuse links escaping it. No live
+# host mounts, inherited home directories, credentials, or unlisted inputs.
+# Reports go to /run/dr-hands/inputs/report.json; source goes to
+# /run/dr-hands/inputs/source. Neither is baked into a reusable public image.
+# Private code already baked into an image makes that entire image private.
+
+[workflows.browse]
+# Public browsing is a separate run, not a later stage on the same guest.
+# All its images and inputs must be explicitly public. URLs/query strings may
+# themselves be private: approving a link for browsing is a disclosure decision.
+# No private-to-public transfer or automatic declassification is supported.
+network = "public-http"
+
+[workflows.browse.roles.agent]
+image = "REPLACE_WITH_IMMUTABLE_PUBLIC_AGENT_IMAGE"
+sensitivity = "public"
+
+[[workflows.browse.inputs]]
+name = "report"
+kind = "report"
+path = "public-report.json"
+role = "agent"
+sensitivity = "public"
+
+[workflows.gravity]
+# Reference gravity uses an attacker and synthetic target without general web
+# access. The same fixed lifecycle serves all role/image selections.
+network = "inference-only"
+
+[workflows.gravity.roles.attacker]
+image = "REPLACE_WITH_IMMUTABLE_ATTACKER_IMAGE"
+sensitivity = "public"
+
+[workflows.gravity.roles.target]
+image = "REPLACE_WITH_IMMUTABLE_SYNTHETIC_TARGET_IMAGE"
+sensitivity = "public"
+
+# Public browsing results remain hostile when explicitly imported into private
+# analysis. Derived data inherits private sensitivity if any readable input or
+# image was private. Changing policy requires a fresh run and fresh inventory;
+# disabling one stage or deleting a file does not erase guest memory/history.
+# Exports are explicit opaque files, not automatic local rendering/execution.
+# Approval shows image identities, input destinations/digests/classifications,
+# network access, inference recipients, budget, lifetime, and the three legs.
+# No production or operator credentials belong in any image or input.

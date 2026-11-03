@@ -1,6 +1,6 @@
 # Formal proof map
 
-This directory describes verification of the restricted gravity models. Read `formal/README.md` for the scope and limitations before using these guides. These checks do not prove public-web triage.
+This directory describes verification of the restricted gravity models. Read `formal/README.md` for the scope and limitations before using these guides. These checks do not prove public browsing, sensitivity classification, or the lethal-trifecta policy.
 
 ## Baseline preconditions
 

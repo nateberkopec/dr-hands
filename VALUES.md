@@ -13,7 +13,8 @@ dr-hands gives that work a disposable boundary. The operator can investigate a r
 Every report is infected. We assume the agent has root from the start and the target is infected too, because the agent may infect it at any time. [SECURITY.md](SECURITY.md#what-we-assume) explains the triage threat model, [the gravity threat model](SECURITY.md#gravity-machine), [how dr-hands protects you](SECURITY.md#how-dr-hands-protects-you), and [the risks we accept](SECURITY.md#risks-we-accept). The design rules follow from it:
 
 - **Enforce rules outside the guest.** The agent already has root. Guest configuration is not a security boundary; the rules that matter live outside it: cloud networks, managed access policy, and the OpenRouter workspace.
-- **Treat every input as infected.** Report intake accepts structured text, not executable source plugins. A valid report or manifest describes what enters the run; it does not certify safety.
+- **Treat every input as infected.** Report intake accepts structured text, not executable source plugins. Schema validation and image pinning do not certify safety.
+- **Separate public software from private inputs.** Inventory image layers, reports, source, and derived data. Missing sensitivity means private. Refuse private data plus public-web access; do not offer an override. Disclosure to the configured inference service and its serving providers is accepted and shown before approval.
 - **Destroy every infected runtime surface.** Draw a clear boundary around all guest-writable resources and run authority. Removal destroys those resources, revokes authority, and confirms absence. Explicitly exported evidence may survive as opaque, still-hostile files. Public-web requests cannot be undone by teardown.
 
 When we accept a new risk, we add it to SECURITY.md.
@@ -36,4 +37,4 @@ Cloud resources come from code, not clicks. A one-time manual step is fine when 
 
 Personal settings live in ignored `config.toml`, beside tracked `config.example.toml`. Secrets live in your own secret store, through fnox; settings name aliases, not secret values.
 
-Replace infrastructure through provisioners and experiments through declarative workflows, without editing core. Report sources integrate by producing the documented text format, not by running local plugins.
+Customize experiments by building and selecting immutable images and declaring data. dr-hands owns role interfaces and lifecycle order; no startup-command overrides, pre-agent hooks, or user lifecycle steps are accepted. Report sources integrate by producing the documented text format, not by running local plugins.

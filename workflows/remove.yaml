@@ -1,0 +1,12 @@
+# Independent Dagu removal graph: usable after interruption without rerunning
+# validation, approval, provisioning, or guest work. No engine execution is wired.
+# Commands are documentation stubs, not successful cleanup operations.
+# Removal uses the frozen run/provider/generation inventory, not current defaults.
+# Revocation failure must not prevent attempts to delete runtime resources;
+# successful deletion alone must never certify authority revocation or absence.
+# The remove operation owns error accumulation and external verification.
+type: graph
+working_dir: ..
+steps:
+  - name: remove
+    run: bin/dr-hands remove

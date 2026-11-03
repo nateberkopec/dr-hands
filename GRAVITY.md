@@ -1,12 +1,12 @@
 # Gravity machine
 
-Gravity is a supplied declarative workflow in the shared [Run model](docs/workflows.md). It lets an attacker framework attack a disposable target implementation within a restricted boundary. Its network policy is narrower than public-web triage; neither workflow has its own execution engine.
+Gravity selects attacker and target images under the shared [fixed lifecycle](workflows/lifecycle.yaml). It lets an attacker framework attack a disposable target implementation within a restricted boundary. Its network policy is narrower than public browsing; neither workflow has its own execution engine.
 
 This page is the top of the acceptance pyramid. Read it first. If these eight claims describe the right system, follow them one layer down into the [threat model](SECURITY.md#gravity-machine), then into the [executable behavior](https://github.com/nateberkopec/dr-hands/blob/archive/design-stack-before-spec-only/features/gravity.feature), and finally into the [formal models](formal/README.md). Each layer keeps the same claim IDs and adds detail.
 
 ## The system
 
-The reference gravity workflow declares attacker and target roles. With the AWS provisioner, one run creates a chamber with two machines:
+The reference gravity workflow selects images for the fixed attacker and target roles. With the AWS provisioner, one run creates a chamber with two machines:
 
 ```text
 operator
@@ -23,7 +23,7 @@ OpenRouter
 
 The attacker role runs one framework and its private state. The target role runs one production-shaped service and its dependencies. Both machines, both operating systems, every container, every dependency, the model, and every byte they produce are hostile. The chamber boundary is AWS's hypervisor and network, not Docker or a guest firewall.
 
-The first reference pair is [ARTEX](https://github.com/BaaRai/ARTEX) as the attacker framework and [RubyGems.org](https://github.com/rubygems/rubygems.org) as the target. RubyGems.org runs with its Rails application, PostgreSQL, Memcached, and OpenSearch. These are replaceable implementations of stable roles, not fixed chamber components. The first version does not accept arbitrary Internet targets, production data, or a production credential.
+The first reference pair is [ARTEX](https://github.com/BaaRai/ARTEX) as the attacker framework and [RubyGems.org](https://github.com/rubygems/rubygems.org) as the target. RubyGems.org runs with its Rails application, PostgreSQL, Memcached, and OpenSearch. These are replaceable implementations of stable roles, not fixed chamber components. The reference workflow accepts no arbitrary Internet targets, production data, or production credentials. Its image layers and synthetic inputs are declared public; this classification does not make them trusted.
 
 ## The eight claims
 
@@ -76,4 +76,4 @@ Attacker and target implementations—including ARTEX, RubyGems.org, and their d
 3. Read the model guide, traceability table, and limits in [Formal verification](formal/README.md).
 4. Check the Alloy and TLA+ results against the evidence requirements in the model guide.
 
-The formal checks concern bounded models under stated assumptions, not arbitrary workflows or public-web triage. The feature scenarios describe implementation-level checks.
+The formal checks concern bounded models under stated assumptions, not public browsing or sensitivity classification. The feature scenarios describe implementation-level checks.
