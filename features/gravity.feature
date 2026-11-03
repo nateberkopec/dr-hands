@@ -1,23 +1,35 @@
-Feature: Run ARTEX against a live service without giving either one a way out
-  A gravity run contains a hostile ARTEX attacker and a hostile target. The chamber boundary is outside both machines.
+Feature: Run an attacker framework against a live target without giving either one a way out
+  A gravity run contains a hostile attacker-framework implementation and a hostile target implementation. The chamber boundary is outside both roles.
 
   Background:
-    Given the gravity attacker image is current
-    And the RubyGems.org target image is current
+    Given the "ARTEX" reference attacker image is current
+    And the "RubyGems.org" reference target image is current
     And the OpenRouter workspace is configured
 
   @G1
-  Scenario: Start a useful RubyGems.org gravity run
-    When I start a RubyGems.org gravity run
-    Then one attacker and one target are running in a dedicated VPC
-    And ARTEX and PostgreSQL are healthy on the attacker
-    And the RubyGems.org Rails app, PostgreSQL, Memcached and OpenSearch are healthy on the target
-    And ARTEX's scope contains only the target's private address and declared port
+  Scenario: Start a useful reference gravity run
+    When I start gravity with attacker "ARTEX" and target "RubyGems.org"
+    Then one attacker role and one target role are running in a dedicated VPC
+    And the run records both selected implementation identities
+    And ARTEX and PostgreSQL are healthy in the attacker role
+    And the RubyGems.org Rails app, PostgreSQL, Memcached and OpenSearch are healthy in the target role
+    And ARTEX's scope contains only the target role's private address and declared port
     And the run expires within 12 hours
 
   @G1
-  Scenario: ARTEX exercises the gravity-only canary weakness
-    Given I started a RubyGems.org gravity run
+  Scenario Outline: Implementations fulfill stable roles
+    When I select <implementation> for the <role> role
+    Then it supplies <contract>
+    And replacing it does not change the chamber's trusted set or outer policy
+
+    Examples:
+      | role     | implementation | contract                                                                  |
+      | attacker | ARTEX          | a process, health check, scope input, inference configuration and results |
+      | target   | RubyGems.org   | processes, health check, declared ports, synthetic data and logs          |
+
+  @G1
+  Scenario: The reference attacker exercises the reference target's canary
+    Given I started gravity with attacker "ARTEX" and target "RubyGems.org"
     When ARTEX finishes its task within the run's inference budget
     Then ARTEX's evidence contains the synthetic marker
     And the target log records the request that produced that marker
@@ -25,16 +37,16 @@ Feature: Run ARTEX against a live service without giving either one a way out
 
   @G1
   Scenario: A disconnected chamber is not useful
-    Given the attacker cannot reach the target's declared port
-    When I start a RubyGems.org gravity run
+    Given the attacker role cannot reach the target role's declared port
+    When I start gravity with the reference implementations
     Then the run does not become ready
     And creation fails with the missing path
     And the partial run is removed
 
   @G1 @G5
-  Scenario: Images are immutable during a run
-    Given either gravity image is stale
-    When I start a RubyGems.org gravity run
+  Scenario: Role implementations are immutable during a run
+    Given either reference implementation image is stale
+    When I start gravity with the reference implementations
     Then gravity refuses and tells me which image to build
     And the target image records its exact upstream RubyGems.org commit
     And the gravity-only canary is the only source diff from that commit
@@ -42,7 +54,7 @@ Feature: Run ARTEX against a live service without giving either one a way out
 
   @G2 @G3
   Scenario Outline: Attacker root cannot leave its declared paths
-    Given I started two RubyGems.org gravity runs
+    Given I started two gravity runs with the reference implementations
     And the attacker in the first run has root
     When attacker root tries to reach <destination>
     Then the attempt fails outside the guest
@@ -64,7 +76,7 @@ Feature: Run ARTEX against a live service without giving either one a way out
 
   @G2 @G3
   Scenario Outline: Target root cannot leave its declared paths
-    Given I started two RubyGems.org gravity runs
+    Given I started two gravity runs with the reference implementations
     And the target in the first run has root
     When target root tries to reach <destination>
     Then the attempt fails outside the guest
@@ -83,7 +95,7 @@ Feature: Run ARTEX against a live service without giving either one a way out
 
   @G2 @G3
   Scenario Outline: Replacing guest policy does not widen the chamber
-    Given I started a RubyGems.org gravity run
+    Given I started a gravity run with the reference implementations
     And both machines have root
     When they replace <guest policy>
     Then every forbidden attacker and target path still fails
@@ -96,11 +108,11 @@ Feature: Run ARTEX against a live service without giving either one a way out
       | DNS configuration     |
       | proxy configuration   |
       | container networking  |
-      | ARTEX scope policy    |
+      | attacker-framework scope policy |
 
   @G3
   Scenario Outline: Declared paths work
-    Given I started a RubyGems.org gravity run
+    Given I started a gravity run with the reference implementations
     When <source> connects to <destination>
     Then the connection succeeds
     And no broader destination becomes reachable
@@ -114,7 +126,7 @@ Feature: Run ARTEX against a live service without giving either one a way out
 
   @G3
   Scenario: Cloud policy contains every runtime route
-    Given I started a RubyGems.org gravity run
+    Given I started a gravity run with the reference implementations
     Then neither instance has a public address or instance role
     And the target subnet has no default route
     And the attacker's default route crosses AWS Network Firewall before NAT
@@ -125,14 +137,14 @@ Feature: Run ARTEX against a live service without giving either one a way out
 
   @G4
   Scenario: An allowed model answers through the filtered route
-    Given I started a RubyGems.org gravity run
-    When ARTEX asks the first model in DR_HANDS_MODELS a question
+    Given I started a gravity run with the reference implementations
+    When the attacker framework asks the first model in DR_HANDS_MODELS a question
     Then the model answers
     And the request is charged only to that run's OpenRouter key
 
   @G4
   Scenario Outline: Inference cannot enlarge authority
-    Given I started a RubyGems.org gravity run
+    Given I started a gravity run with the reference implementations
     When the run's key attempts <action>
     Then OpenRouter refuses it
 
@@ -149,7 +161,7 @@ Feature: Run ARTEX against a live service without giving either one a way out
 
   @G4
   Scenario Outline: The egress filter is not a general proxy
-    Given I started a RubyGems.org gravity run
+    Given I started a gravity run with the reference implementations
     When attacker root attempts <evasion>
     Then AWS denies the request before it reaches that destination
 
@@ -164,7 +176,7 @@ Feature: Run ARTEX against a live service without giving either one a way out
 
   @G5
   Scenario: The chamber holds nothing valuable
-    Given I started a RubyGems.org gravity run
+    Given I started a gravity run with the reference implementations
     Then neither machine has AWS, GitHub, registry, production or operator credentials
     And the target has no OpenRouter key or management identity
     And the target contains only synthetic data and fake integrations
@@ -172,13 +184,13 @@ Feature: Run ARTEX against a live service without giving either one a way out
 
   @G5
   Scenario: Runtime dependency fetching is absent
-    Given I started a RubyGems.org gravity run
-    Then ARTEX, RubyGems.org, PostgreSQL, Memcached and OpenSearch came from immutable images
+    Given I started a gravity run with the reference implementations
+    Then both selected role implementations and their dependencies came from immutable images
     And neither machine can reach a package host or container registry
 
   @G6
   Scenario: Status contains no guest-controlled bytes
-    Given I started a RubyGems.org gravity run
+    Given I started a gravity run with the reference implementations
     And both machines emit terminal controls and misleading status text
     When I inspect the run's status
     Then I see only trusted control-plane state and fixed labels
@@ -192,11 +204,11 @@ Feature: Run ARTEX against a live service without giving either one a way out
     And remote filenames are not interpreted
     And archives are not extracted
     And files are not rendered or opened
-    And ARTEX's web port is unreachable from my workstation
+    And the attacker framework's web port is unreachable from my workstation
 
   @G7
   Scenario: Expiry works while the controller is absent
-    Given I started a RubyGems.org gravity run
+    Given I started a gravity run with the reference implementations
     And I copied its OpenRouter key off the attacker
     And the controller stops before the deadline
     When the run reaches its deadline
@@ -213,7 +225,7 @@ Feature: Run ARTEX against a live service without giving either one a way out
 
   @G8
   Scenario: Remove a gravity run
-    Given I started two RubyGems.org gravity runs
+    Given I started two gravity runs with the reference implementations
     And the first run saved local evidence
     When I remove the first run
     Then AWS confirms its instances, volumes, interfaces, VPC, endpoints and firewall resources absent

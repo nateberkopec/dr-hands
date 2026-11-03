@@ -17,13 +17,13 @@ The two models answer different questions.
 - [Alloy](alloy/gravity.als) asks who can reach whom, who holds authority, which component enforces each boundary, and whether an escape can avoid the named trusted set.
 - [TLA+](tla/GravityLifecycle.tla) asks whether partial provisioning, time, controller failure, revocation, deletion, observation, and retries can put a run into an unsafe lifecycle state.
 
-Neither model describes ARTEX's reasoning or RubyGems.org's behavior. G1's canary exercise is behavioral acceptance, not a formal claim.
+Neither model fixes an attacker framework or target implementation. ARTEX and RubyGems.org implement those abstract roles for G1's behavioral canary check; their behavior is not a formal claim.
 
 ## Alloy: static authority
 
 ### Vocabulary
 
-The model contains two chambers, each with one attacker and one target. It distinguishes the operator, workstation, AWS control plane, hypervisor, AWS network guard, EC2 Instance Connect, OpenRouter, and the public Internet. Network reachability and capability possession are separate relations.
+The model contains two chambers, each with one abstract attacker-framework role and one abstract target role. It distinguishes the operator, workstation, AWS control plane, hypervisor, AWS network guard, EC2 Instance Connect, OpenRouter, and the public Internet. Network reachability and capability possession are separate relations.
 
 `IntactArchitecture` fixes the intended paths:
 
@@ -133,7 +133,7 @@ The model deliberately collapses provider-specific resources. Implementation sce
 
 | Claim | Security invariants | Alloy | TLA+ | Behavioral acceptance |
 |---|---|---|---|---|
-| G1 useful chamber | I3 | `UsefulChamberIsContained` | `ActiveImpliesComplete` | RubyGems.org canary and matching log |
+| G1 useful chamber | I3 | `UsefulChamberIsContained` | `ActiveImpliesComplete` | reference ARTEX/RubyGems.org canary and matching log |
 | G2 root contained | I2, I7 | `TargetHasOnlyChamberPaths`, `NoGuestEnforcesPolicy` | authority derived outside guest state | root path and policy-replacement scenarios |
 | G3 declared paths | I2–I5 | `ManagementIsInboundOnly`, `NoCrossChamberReachability` | run-scoped resource state | allowed and forbidden path scenarios |
 | G4 bounded inference | I6, I8, I9 | `InferenceIsRunScoped` | `ExpiredAuthorityUnusable`, `RevocationMonotonic`, `DeadlineStable` | workspace, budget, expiry, and egress-evasion scenarios |

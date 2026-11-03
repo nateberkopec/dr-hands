@@ -2,7 +2,7 @@
 
 Triage private security reports and run attacker frameworks against live targets, on throwaway cloud machines that hold nothing worth stealing.
 
-Security reports come from strangers. They may arrive through GitHub, HackerOne, a text file, or a system of your own. Some carry prompt injection, malicious proof-of-concept code, or a story built to steer your verdict. dr-hands normalizes each report through a report source, then gives the resulting run its own AWS machine, called a box. The box has a coding agent ([Pi](https://github.com/earendil-works/pi)), a locked-down network, and no report-source or GitHub credentials. For runtime work, a gravity machine puts an attacker framework and a target implementation together inside a stricter chamber. The agents are the hands. You stay the head: you read the evidence, run the failing test, and take every repository action yourself.
+Security reports come from strangers. They may arrive through GitHub, HackerOne, a text file, or a system of your own. Some carry prompt injection, malicious proof-of-concept code, or a story built to steer your verdict. dr-hands normalizes each report through a report source, then gives the resulting run its own AWS machine, called a box. The box has a coding agent ([Pi](https://github.com/earendil-works/pi)), a locked-down network, and no report-source or GitHub credentials. For runtime work, a gravity machine puts an attacker framework and a target implementation together inside a stricter chamber. [ARTEX](https://github.com/BaaRai/ARTEX) and [RubyGems.org](https://github.com/rubygems/rubygems.org) are the first reference implementations of those roles. The agents are the hands. You stay the head: you read the evidence, run the failing test, and take every repository action yourself.
 
 [SECURITY.md](SECURITY.md) explains the threat model. [VALUES.md](VALUES.md) explains the rules we design by. [GLOSSARY.md](GLOSSARY.md) defines report-source terms.
 
@@ -27,11 +27,11 @@ Each box ends itself 12 hours after it boots.
 ## How a gravity run goes
 
 ```sh
-mise run gravity rubygems.org
+mise run gravity artex rubygems.org
 ```
 
-1. dr-hands creates a private chamber with ARTEX on one AWS machine and a synthetic copy of [RubyGems.org](https://github.com/rubygems/rubygems.org) on another.
-2. ARTEX attacks only that target. Neither machine has general Internet access or a production credential.
+1. dr-hands creates a private chamber with the selected attacker framework on one AWS machine and the selected target implementation on another. In this reference run, those are ARTEX and a synthetic copy of RubyGems.org.
+2. The attacker framework attacks only that target. Neither machine has general Internet access or a production credential.
 3. `mise run gravity-results RUN` saves findings, traffic and evidence as opaque files on your laptop.
 4. `mise run gravity-rm RUN` destroys the chamber and proves every remote resource and authority absent.
 

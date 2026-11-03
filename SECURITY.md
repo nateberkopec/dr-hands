@@ -57,7 +57,7 @@ A local VM or container runs on the machine that holds your keys. If the agent b
 
 **A1 — Total guest compromise.** The attacker may obtain root on both machines in a chamber and coordinate them. Guest root exists before any property below is evaluated.
 
-**A2 — Hostile software and data.** ARTEX, its model and tools, RubyGems.org, PostgreSQL, Memcached, OpenSearch, both operating systems, every dependency, and all generated output may be malicious.
+**A2 — Hostile software and data.** The attacker-framework implementation, target implementation, models, tools, state stores, operating systems, dependencies, and generated output may be malicious. ARTEX and RubyGems.org are reference implementations, not privileged components.
 
 **A3 — Trusted workstation.** The operator workstation, its AWS and OpenRouter credentials, and its OpenSSH client are not initially compromised.
 
@@ -67,7 +67,7 @@ A local VM or container runs on the machine that holds your keys. If the agent b
 
 **A6 — Correct cryptography.** The cryptography and authenticated protocols used by AWS, SSH, TLS, and OpenRouter hold.
 
-**A7 — No valuable target contents.** The target contains synthetic data and fake credentials. Disclosure of its contents to ARTEX or OpenRouter is expected.
+**A7 — No valuable target contents.** The target contains synthetic data and fake credentials. Disclosure of its contents to the attacker framework or OpenRouter is expected.
 
 **A8 — Hostile artifacts remain opaque.** The operator does not execute or automatically render results. Transfers use fixed local names and do not interpret remote paths.
 
@@ -81,7 +81,7 @@ A local VM or container runs on the machine that holds your keys. If the agent b
 
 **I2 — No unmediated external path.** Every packet leaving the attacker subnet crosses AWS-managed DNS and TLS policy. The target subnet has no external route.
 
-**I3 — Declared chamber paths only.** ARTEX can reach the target only on declared service ports and OpenRouter only through the filtered route. The target can reach only declared callback ports.
+**I3 — Declared chamber paths only.** The attacker framework can reach the target only on declared service ports and OpenRouter only through the filtered route. The target can reach only declared callback ports.
 
 **I4 — Chamber isolation.** A guest in one chamber cannot communicate with or exercise authority over another chamber or a triage box.
 
@@ -89,7 +89,7 @@ A local VM or container runs on the machine that holds your keys. If the agent b
 
 **I6 — Inference is bounded.** A chamber can invoke only allowed models, without hosted tools, under its own hard budget and expiry.
 
-**I7 — Guest policy is irrelevant.** Replacing guest firewall, routing, DNS, proxy, container, or ARTEX configuration cannot enlarge externally permitted authority.
+**I7 — Guest policy is irrelevant.** Replacing guest firewall, routing, DNS, proxy, container, or attacker-framework configuration cannot enlarge externally permitted authority.
 
 **I8 — Expiry removes useful authority.** At or after the deadline, inference and management authority are unusable even if compute or network deletion is delayed.
 
@@ -111,11 +111,13 @@ Each run gets a dedicated VPC. The attacker and target use separate private subn
 
 The operator reaches only the attacker, over SSH, through an EC2 Instance Connect Endpoint. Gravity machines do not join the tailnet. The target accepts only declared service traffic from the attacker. Its egress security group admits only declared callback ports to the attacker. Security groups, route tables, DNS policy, TLS inspection, and OpenRouter workspace policy live outside both guests.
 
-ARTEX and the RubyGems.org target run from immutable images built before the chamber starts. Runtime package and registry access are absent. ARTEX is pinned and built from source as an external AGPL workload. The target builds a pinned RubyGems.org revision with its Rails application, PostgreSQL, Memcached, and OpenSearch. It uses synthetic seed data and a gravity-only canary weakness, not production data or the public service.
+The attacker and target roles run from immutable images built before the chamber starts. Runtime package and registry access are absent. An attacker implementation supplies its process, health check, target-and-scope input, inference configuration, and opaque result bundle. A target implementation supplies its processes, health check, declared service and callback ports, synthetic data, and opaque logs. Neither role may add a trusted path or capability.
 
-The attacker holds its own capped OpenRouter key because disclosure of that key does not enlarge its authority. The workspace, not guest configuration, enforces the model list, hosted-tool ban, retention policy, budget, and expiry. The target holds no secret.
+The reference attacker is a pinned, source-built ARTEX release, kept as an external AGPL workload. The reference target is a pinned RubyGems.org revision with its Rails application, PostgreSQL, Memcached, and OpenSearch. It uses synthetic seed data and a gravity-only canary weakness, not production data or the public service. Other implementations may replace either role without changing the chamber boundary.
 
-The ARTEX web UI is not exposed. Control commands discard guest output. Evidence crosses SSH as opaque bytes into fixed filenames and is not extracted automatically. A live viewer is a separate future design problem.
+The attacker-framework implementation holds its own capped OpenRouter key because disclosure of that key does not enlarge its authority. The workspace, not guest configuration, enforces the model list, hosted-tool ban, retention policy, budget, and expiry. The target holds no secret.
+
+No attacker-framework UI is exposed. Control commands discard guest output. Evidence crosses SSH as opaque bytes into fixed filenames and is not extracted automatically. A live viewer is a separate future design problem.
 
 ### The trusted set
 
@@ -125,7 +127,7 @@ The formal model admits only three groups:
 - AWS IAM, EC2 isolation, VPC enforcement, Instance Connect, DNS Firewall, and Network Firewall;
 - OpenRouter's API and policy enforcement.
 
-ARTEX, RubyGems.org, PostgreSQL, Memcached, OpenSearch, guest Linux, Docker, packages, guest policy, application data, and findings are outside the trusted set. The Alloy model rejects architectures that add general HTTPS, guest enforcement, cross-run paths, shared authority, or outbound management. Designs with a local proxy, a custom inference broker, Tailscale inside a gravity guest, sibling containers as the outer boundary, or a local ARTEX browser are rejected for enlarging this set.
+Every attacker and target implementation—including ARTEX, RubyGems.org, and their dependencies—guest Linux, Docker, packages, guest policy, application data, and findings is outside the trusted set. The Alloy model rejects architectures that add general HTTPS, guest enforcement, cross-run paths, shared authority, or outbound management. Designs with a local proxy, a custom inference broker, Tailscale inside a gravity guest, sibling containers as the outer boundary, or a local attacker-framework browser are rejected for enlarging this set.
 
 ### What the formal checks mean
 
@@ -150,7 +152,7 @@ The models do not prove AWS or OpenRouter correct, prove arbitrary scopes, or pr
 ### Gravity machine
 
 - AWS, OpenRouter, OpenSSH, TLS, or their control planes may have a severe unknown vulnerability.
-- OpenRouter receives prompts and synthetic target contents by design.
+- OpenRouter receives attacker-framework prompts and synthetic target contents by design.
 - A guest can spend its own capped inference budget and destroy its own run.
 - A malicious evidence archive can attack software that the operator later chooses to open.
 - A permanently lost controller can leave inert cloud resources until a trusted sweeper runs; externally enforced authority still expires.
