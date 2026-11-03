@@ -1,128 +1,56 @@
 # Setup
 
-You do this once. It takes about an hour, most of it waiting for the image to build.
+This is the intended first-run experience, not executable setup instructions for this specs-only repository. Earlier setup instructions and implementations are available through [History and recovery](history.md).
 
-## 1. Tools
+## 1. Create a configuration
 
-Clone the repository, then install its tools and sign in:
+The future `dr-hands init` command copies tracked `config.example.toml` to ignored `config.toml` beside it. It refuses to overwrite a file and makes no network calls. The user can also copy and edit the example manually.
 
-```fish
-mise install
-gh auth login
-op signin
-```
+Choose a provisioner, select workflow manifest paths, and set inference models, budget, and lifetime. Provider-specific settings stay nested under `provisioners.<name>`. Workflow manifests declare role images and target selection; untrusted reports cannot choose these for you.
 
-## 2. AWS
+The example's workflow files are not present yet. This repository defines their contract in [Workflows](workflows.md), not an operational installation.
 
-dr-hands runs boxes in their own AWS member account. Its deploy key can manage EC2 in one region and nothing else. You never give dr-hands your root credentials.
+## 2. Connect your existing secret store
 
-Sign in as the root user of your AWS Organization's management account, then run the bootstrap in your own terminal:
+Configure fnox normally for your secret store and map the required aliases in the file named by `secrets.file`. The default path is adjacent `fnox.local.toml`. There is no dr-hands secret-store wizard and no second provider configuration.
 
-```fish
-aws login
-mise run bootstrap-aws --email you+dr-hands@example.com
-```
+For the AWS example, map the two AWS aliases and the OpenRouter administration alias. Use limited operator provisioning credentials, not cloud root credentials. Other provisioners specify their own requirements. No report-exporter credentials belong here.
 
-Add `--create-organization` if you don't have an Organization yet. The bootstrap saves the deploy key to 1Password as `Private/dr-hands-aws-deploy`; pass `--vault` to pick another vault.
-
-## 3. Tailscale
-
-Add a tag for boxes, and grants that let boxes reach only the broker. Replace the broker and owner with your own:
-
-```jsonc
-"tagOwners": {
-  "tag:ghsa": ["autogroup:admin"],
-},
-"grants": [
-  { "src": ["tag:ghsa"],        "dst": ["tag:broker"], "ip": ["tcp:3460"] },
-  { "src": ["you@example.com"], "dst": ["tag:ghsa"],   "ip": ["tcp:22"] },
-],
-"tests": [
-  { "src": "tag:ghsa", "accept": ["tag:broker:3460"], "deny": ["tag:broker:22", "tag:broker:3461", "tag:ghsa:22"] },
-],
-```
-
-Check that no broader grant covers `tag:ghsa`, such as one for `autogroup:tagged` or `*`.
-
-Then create an OAuth client with the `devices:core` and `auth_keys` write scopes, limited to `tag:ghsa`. Save it in 1Password, with the client ID as `username` and the secret as `credential`. Then point dr-hands at both secrets, as shown in [configuration.md](configuration.md#secrets).
-
-## 4. The broker
-
-The broker runs in Docker on a machine on your tailnet. It needs:
-
-- [Meridian](https://github.com/rynfar/meridian), reachable from the container, for Claude and ChatGPT subscriptions. For ChatGPT, run Meridian with `MERIDIAN_CHATGPT_CREDENTIALS=owned` and add a dedicated seat with `meridian profile add <name> --chatgpt --headless`.
-- A Vercel AI Gateway key with a spending limit
-
-A Compose service for it, with `ADMIN_TOKEN=<long random secret>` in `admin.env` and `MERIDIAN_API_KEY` and `VERCEL_API_KEY` in `keys.env`. `src/broker/server.ts` lists the other settings and their defaults.
-
-```yaml
-services:
-  broker:
-    build: ./src/broker
-    restart: unless-stopped
-    ports: ["127.0.0.1:3460:3460", "127.0.0.1:3461:3461"]
-    env_file: [admin.env, keys.env]
-    environment:
-      BROKER_HOST: 0.0.0.0
-      DATA_DIR: /data
-      MERIDIAN_URL: http://meridian:3456
-      CLAUDE_MODELS: claude-opus-5-5
-      CHATGPT_MODELS: gpt-6.1-sol
-      VERCEL_MODELS: deepseek/deepseek-v4.1-flash-1017
-    volumes: [data:/data]
-    read_only: true
-    cap_drop: [ALL]
-    security_opt: ["no-new-privileges:true"]
-    mem_limit: 512m
-    pids_limit: 128
-volumes:
-  data:
-```
-
-The data volume must be writable by uid 1000. Publish only the inference port on the tailnet, and keep the admin port on localhost:
+## 3. Validate locally
 
 ```fish
-tailscale serve --bg --https=3460 http://127.0.0.1:3460
+dr-hands check
 ```
 
-Your laptop must be able to SSH to this machine and run `curl` there.
+This validates configuration, manifests, paths, and secret alias declarations without resolving values or contacting services. Errors identify the field and rule. It does not print report contents or secret values.
 
-## 5. Settings
-
-Point dr-hands at your broker and choose your languages in `mise.local.toml`:
-
-```toml
-[env]
-AWS_REGION = "us-east-2"
-DR_HANDS_STACKS = "ruby node"
-DR_HANDS_BROKER_HOST = "broker.example.ts.net"
-DR_HANDS_BROKER_IP = "100.100.100.100"
-DR_HANDS_BROKER_SSH = "broker"
-DR_HANDS_BROKER_TOKEN_FILE = "~/dr-hands-broker/admin.env"
-```
-
-[configuration.md](configuration.md) explains each setting.
-
-## 6. The image
+## 4. Check the selected services
 
 ```fish
-mise run image
+dr-hands doctor --workflow triage
 ```
 
-It takes 15 to 20 minutes.
+dr-hands invokes fnox itself and checks the selected provider and inference service without creating cloud resources, minting run keys, or making a billed inference request. A doctor result distinguishes confirmed capabilities from those a read-only probe cannot establish. It is not proof of containment.
 
-## 7. Your first report
+Provisioning is a separate explicit action. Do not infer that a successful doctor grants permission to deploy.
 
-Use the built-in text source for a harmless first test:
+## 5. Supply data and start a run
+
+Obtain a report however you choose and save a document matching [Report input](reports.md). Start with harmless synthetic text and a disposable target you control.
 
 ```fish
-mise run add text ./report.md --repo owner/repo
+dr-hands run --workflow triage --report ./report.json
 ```
 
-Use the built-in GitHub source for a GitHub private vulnerability report:
+This command validates the selected inputs again, resolves only the required credentials, and provisions the run. Triage may follow public HTTP(S) links from inside the guest; gravity does not inherit that access. Neither workflow may reach the workstation, private networks, other runs, or provider metadata/control-plane endpoints.
+
+## 6. Export and remove
 
 ```fish
-mise run add github GHSA-xxxx-xxxx-xxxx --repo owner/repo
+dr-hands export RUN
+dr-hands remove RUN
 ```
 
-[configuration.md](configuration.md#report-sources) explains how to plug in HackerOne or another trusted local report source.
+An explicit export saves selected guest-produced evidence as opaque files under fixed local names. They remain hostile; do not execute or automatically render them. Removal destroys every guest-writable runtime resource and revokes run authority, then confirms absence through external services. Exported evidence and trusted control-plane metadata may survive. Earlier requests to public services cannot be undone by removal.
+
+There is no broker, persistent custom control plane, or report-source plugin to install. See [Configuration](configuration.md) for exact settings and side-effect boundaries.

@@ -1,6 +1,6 @@
 # Security
 
-dr-hands runs coding agents on private security reports. Strangers write those reports, and some will try to trick the agent. This page explains what dr-hands protects and how.
+dr-hands specifies disposable runs for hostile investigations and experiments. Triage and gravity are declarative workflows in the same tool, not separate security engines. This page describes intended boundaries, not guarantees established by an implementation in this repository.
 
 ## Report a problem
 
@@ -10,19 +10,21 @@ Report security problems in dr-hands privately through [GitHub's private vulnera
 
 Every report is hostile, regardless of its source. Its author may control:
 
-- the report text, comments, and attachments, including hidden text aimed at AI
-- proof-of-concept code and the packages it pulls in
-- source-local metadata that becomes filenames, identifiers, or error text
-- the agent itself, through prompt injection
+- the report text and comments, including hidden text aimed at AI;
+- URLs, proof-of-concept snippets, model files, and packages encountered inside the run;
+- descriptive source metadata and guest-produced findings;
+- the agent itself, through prompt injection.
 
-A report source is different from a report. Source executables run as you on your laptop and are trusted code. GitHub and text are built in; you are responsible for every custom source you configure.
+Report intake accepts only the [structured JSON text contract](docs/reports.md). Exporters and their credentials are outside scope. The local tool validates structure and bounds without rendering content, executing code, importing attachments, or following links. Text is data at this boundary, not trusted content; parsers and terminal handling still need care.
+
+The operator selects declarative workflows, targets, and immutable images independently of the report. A manifest and input digests identify what enters a run; they do not establish that it is benign.
 
 We assume the agent has root from the start. The report is infected, and the target is infected too: the agent may compromise it at any time. Guest root is an initial condition, not an escape.
 
 The report is not the secret. Its author already has it. We protect:
 
 - your laptop, its keys, and your logins
-- credentials for GitHub, HackerOne, or any other report source
+- operator credentials, including credentials for report sources that dr-hands never receives
 - your home network and tailnet
 - your money and AI quota
 
@@ -30,25 +32,29 @@ We cannot ensure the operator's cognitive security. Reports, agent output, and e
 
 ## How dr-hands protects you
 
-**One cloud box per run.** Each normalized report snapshot gets a fresh AWS machine. It holds no report-source, GitHub, cloud, or AI provider keys. It deletes itself after 12 hours.
+**One isolated boundary per run.** Each workflow's roles and guest-writable resources belong to one disposable run. No role gets operator, production, cloud, report-source, or inference-administration credentials. Management is operator-initiated. Guest root does not confer access to the workstation, private networks, other runs, or provider metadata/control-plane endpoints.
 
-**No network by default.** The agent can reach two things: a proxy that allows GitHub and your package hosts, and the AI broker. A firewall on the box blocks the rest, including DNS and the cloud metadata service.
+**Network policy outside the guest.** Triage permits public HTTP(S) so the agent can follow hostile links. Gravity permits only declared role connections and bounded inference. A provider must enforce the selected policy outside the guest, including actual destination addresses, redirects, IPv6, and DNS rebinding. It must reject a policy it cannot enforce. See [Workflows](docs/workflows.md#mandatory-boundaries).
 
-**A broker for AI.** Boxes never see a real AI key. Each box gets its own short-lived broker key. The broker allows only listed models, caps tokens per report, and keeps each report's sessions apart.
+**Bounded inference, not a broker.** A role may hold its own expiring OpenRouter credential under a hard run budget and model allowlist. It never holds an administration key. Hosted tools are disabled and zero data retention is required. These are required service capabilities, not facts established merely by successful authentication.
 
-**A locked-down tailnet.** Boxes can reach the broker's port and nothing else, not even other boxes or your laptop.
+**Inventory before execution.** Input snapshots, workflow declarations, immutable image identities, and the guest-writable resource inventory define the run. There is no shared persistent storage that a guest may infect outside that inventory.
 
-**A trusted local intake boundary.** A report source finishes before cloud provisioning. dr-hands accepts only fixed snapshot filenames, captures source output, and keeps source credentials out of the snapshot and run state.
+**Opaque output and explicit export.** Guest-produced evidence crosses into fixed local filenames only through explicit export. It is never automatically rendered, executed, extracted, or treated as a local path. It remains hostile even after removal. Reviewing and applying a patch is a separate operator action.
 
-**A scanner, as a tripwire.** Your laptop scans every normalized snapshot for hidden text, lookalike letters, and words aimed at AI. Plain-English tricks still get through.
-
-**A guarded terminal.** You connect in a separate terminal window that blocks clipboard access, links, and images.
-
-**You stay in charge.** You take every report-source and repository action yourself. Fixes come back as patch files, and dr-hands flags changes to build files and dependencies. Read every line before you apply one.
+**Externally enforced expiry and observed removal.** Run authority expires after the configured lifetime, at most twelve hours, independently of guest cooperation. Removal revokes authority, destroys every guest-writable runtime resource, and confirms absence through external services. Partial provisioning follows the same path. Trusted control-plane metadata and explicitly exported hostile evidence may survive; public-web requests and remote copies cannot be recalled.
 
 ## Why not a local VM
 
-A local VM or container runs on the machine that holds your keys. If the agent breaks out, it lands there. A container shares its host's kernel, so one kernel bug is enough. A break-out from a cloud box lands on a host with nothing of yours, off your network. That costs about a dollar per report.
+A local VM or container runs on the machine that holds your keys. If it escapes that boundary, it can reach the host. A cloud run places that boundary away from the workstation. This does not make a cloud escape impossible or harmless; the provider isolation boundary remains an explicit assumption.
+
+## Escape goal and limits
+
+The ambition is that escape requires a CVSS 9+ zero-day in a mature upstream boundary, with as few such assumptions as possible. The concrete requirement is no path beyond the declared authority without breaking a named upstream boundary. The score and novelty of a future vulnerability cannot be guaranteed. Misconfiguration, credential mistakes, and chains of less severe flaws must not be dismissed by this slogan.
+
+Executing a malicious model, package, or serialized payload inside a guest is in scope and already covered by the root-compromise assumption. Reaching another tenant, provider host, credentials, or management service is an escape and must cross the declared upstream boundary. This states the threat class raised by the HuggingFace-style escape question; it does not claim to analyze or prevent any particular incident.
+
+Public-web triage deliberately permits communication beyond the disposable run. Disclosing report contents or sending hostile public HTTP(S) requests is an accepted risk of that workflow, not an upstream-boundary failure. Gravity does not permit those paths.
 
 ## Gravity machine
 
@@ -102,7 +108,7 @@ A local VM or container runs on the machine that holds your keys. If the agent b
 
 **I12 — Runs cannot mutate each other.** Provisioning, expiry, revocation, deletion, verification, and sweeping are scoped by immutable run identity and generation.
 
-**I13 — Evidence outlives the chamber.** Trusted local evidence is monotonic and remote teardown does not remove it.
+**I13 — Exported evidence outlives the chamber.** The local record of explicit exports is monotonic and remote teardown does not remove it. The controller owns the record; guest-produced evidence bytes remain hostile.
 
 **I14 — Hostile output is not an active path.** Guest-controlled bytes are never printed directly, interpreted as paths, automatically extracted, or opened in a browser.
 
@@ -142,12 +148,11 @@ The models do not prove AWS or OpenRouter correct, prove arbitrary scopes, or pr
 
 ### Report triage
 
-- A custom report source is trusted code running as you. A malicious or vulnerable source can compromise your laptop before a box exists.
-- Report-source APIs can return hostile metadata as well as hostile prose. Capturing and normalizing output reduces terminal risk but cannot make a trusted source executable safe.
-- An agent that gets root on its box can remove the firewall. It still holds only that report's broker key, which expires.
-- Allowed hosts work both ways. The agent could send data to GitHub or a package host, or pull in an attacker's package.
-- The agent can reach any server it starts on its own box.
-- Text from the box reaches your terminal and SSH client.
+- A structurally valid text report can still contain prompt injection or exploit parser and presentation bugs. Validation is not sanitization.
+- Public HTTP(S) lets a compromised agent disclose report contents, follow attacker-controlled links, and send abusive requests to reachable services. Those effects can outlive the run.
+- Guest root can alter guest policy and corrupt the experiment. Only external enforcement is a security boundary.
+- Exported files can attack the software or person that later opens them. Fixed filenames and opaque transfer do not make contents safe.
+- Report exporters are outside dr-hands. The operator is responsible for the tools used before supplying a report.
 - The attacker shapes the verdict and the fix. Tests and human review can help, but neither guarantees the operator's cognitive security; hostile content may manipulate the reviewer.
 
 ### Gravity machine

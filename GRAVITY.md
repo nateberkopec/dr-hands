@@ -1,12 +1,12 @@
 # Gravity machine
 
-A gravity machine lets an attacker framework attack a disposable target implementation without giving either one a way out.
+Gravity is a supplied declarative workflow in the shared [Run model](docs/workflows.md). It lets an attacker framework attack a disposable target implementation within a restricted boundary. Its network policy is narrower than public-web triage; neither workflow has its own execution engine.
 
 This page is the top of the acceptance pyramid. Read it first. If these eight claims describe the right system, follow them one layer down into the [threat model](SECURITY.md#gravity-machine), then into the [executable behavior](https://github.com/nateberkopec/dr-hands/blob/archive/design-stack-before-spec-only/features/gravity.feature), and finally into the [formal models](formal/README.md). Each layer keeps the same claim IDs and adds detail.
 
 ## The system
 
-One gravity run creates a chamber with two AWS machines:
+The reference gravity workflow declares attacker and target roles. With the AWS provisioner, one run creates a chamber with two machines:
 
 ```text
 operator
@@ -57,7 +57,7 @@ At twelve hours, inference and management authority stop working even if deletio
 
 ### G8. Teardown proves absence
 
-Removal is complete only after AWS and OpenRouter report every run-owned resource and capability absent. Partial provisioning converges on the same cleanup path. One run cannot remove another, and trusted local evidence survives.
+Removal is complete only after AWS and OpenRouter report every guest-writable runtime resource and run capability absent. Partial provisioning converges on the same cleanup path. One run cannot remove another. Trusted control-plane metadata and explicitly exported evidence survive; guest-produced evidence bytes remain hostile.
 
 ## Trusted set
 
@@ -74,6 +74,6 @@ Attacker and target implementations—including ARTEX, RubyGems.org, and their d
 1. Read the numbered assumptions and invariants in [Security](SECURITY.md#gravity-machine).
 2. Read the real-service scenarios in [the gravity feature](https://github.com/nateberkopec/dr-hands/blob/archive/design-stack-before-spec-only/features/gravity.feature).
 3. Read the model guide, traceability table, and limits in [Formal verification](formal/README.md).
-4. Run `mise run verify-formal` to check Alloy and TLA+.
+4. To run the old Alloy/TLA+ harness, recover the [archived version](docs/history.md). There is no verification runner in this checkout.
 
-The formal checks prove properties of bounded models under stated assumptions. The feature scenarios are what eventually prove that the implementation matches those models.
+The formal checks concern bounded models under stated assumptions, not arbitrary workflows or public-web triage. The archived feature scenarios describe implementation-level checks; they are not evidence that the revised tool has been built.

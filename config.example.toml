@@ -1,0 +1,27 @@
+version = 1
+provisioner = "aws"
+
+[workflows]
+triage = "workflows/triage.toml"
+gravity = "workflows/gravity.toml"
+
+[secrets]
+file = "fnox.local.toml"
+
+[provisioners.aws]
+region = "us-east-2"
+
+[provisioners.aws.secrets]
+access_key_id = "aws_access_key_id"
+secret_access_key = "aws_secret_access_key"
+
+[inference]
+service = "openrouter"
+models = ["deepseek/deepseek-v4.1-flash-1017"]
+budget_usd = 5
+
+[inference.secrets]
+admin_key = "openrouter_admin_key"
+
+[run]
+lifetime_hours = 12

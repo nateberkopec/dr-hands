@@ -4,4 +4,5 @@ tmp/
 *.tfstate.*
 state/
 mise.local.toml
+config.toml
 fnox.local.toml

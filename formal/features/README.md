@@ -1,6 +1,6 @@
 # Formal proof map
 
-This directory is the maintained source for driving and reviewing Gravity's formal claims. Read this index after `formal/README.md`, then use the matching feature file to inspect the model and its evidence.
+This directory describes the archived harness for reviewing the restricted gravity models. Read `formal/README.md` for the current scope and limitations before using these guides. The commands below require recovering the archived harness; they do not run in this checkout or prove public-web triage.
 
 ## Baseline preconditions
 

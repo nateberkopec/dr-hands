@@ -1,32 +1,37 @@
 # Provisioners
 
-This is the provisioner interface specification. No provisioner implementation is present in this checkout. References below to the bundled AWS implementation describe the [archived version](../docs/history.md).
+This is an infrastructure interface specification. No provisioner implementation is present in this checkout. [Archived versions](../docs/history.md) contain the previous AWS implementation.
 
-`DR_HANDS_PROVISIONER` is either `aws` or an absolute path to an executable. `aws` is the default and resolves to `provisioners/aws/provisioner`.
+A provisioner implements a Run's infrastructure and externally enforced security boundary. Workflows declare roles and requirements; they do not run local lifecycle hooks or choose their own infrastructure credentials.
 
-A provisioner implements these commands:
+## Selection and configuration
 
-| Command | Result on standard output |
-|---|---|
-| `image-fingerprint` | One deterministic image fingerprint |
-| `build-image` | One opaque image identifier |
-| `init` | None |
-| `create` | One opaque resource identifier |
-| `ssh-host-key` | One OpenSSH host key |
-| `seal` | None |
-| `destroy` | None |
-| `list` | One Run ID per line |
-| `sweep` | Human-readable cleanup results |
+`config.toml` selects `provisioner = "aws"` or another explicitly installed integration. Settings belong under `provisioners.<name>`, with fnox aliases under `provisioners.<name>.secrets`. The integration mechanism for third-party provisioners remains to be specified; a report or workflow manifest cannot supply a local executable path.
 
-Core supplies `DR_HANDS_REPO` to every command. Commands additionally receive only the environment they need:
+Provisioner code operates with operator authority and must be installed deliberately. This is distinct from guest role code, which is assumed malicious, and report data, which is never executed locally. Using another provider requires reviewing its named security boundaries and supported policies; interface compatibility alone does not establish containment.
 
-- `build-image`: `DR_HANDS_IMAGE_FINGERPRINT`
-- `create`: `DR_HANDS_RUN`, `DR_HANDS_IMAGE`, `DR_HANDS_SSH_PUBLIC_KEY`, `DR_HANDS_TAILNET_AUTH_KEY`
-- `ssh-host-key` and `seal`: `DR_HANDS_RUN`, `DR_HANDS_RESOURCE`
-- `destroy`: `DR_HANDS_RUN` and, when known, `DR_HANDS_RESOURCE`
+## Responsibilities
 
-Machine-readable commands write only their result to standard output and diagnostics to standard error. Fingerprints, image identifiers, and resource identifiers are one value containing only letters, digits, `.`, `_`, `:`, `/`, `@`, `+`, or `-`. Commands must be idempotent where retry is possible. `destroy` must succeed when the Run is already absent. `list` and `sweep` must use infrastructure state rather than local Run directories.
+A provisioner must:
 
-Each Run records the selected provisioner. Existing Runs without that file use AWS, so changing the current setting does not strand them. A provisioner owns its infrastructure tool, state layout, image identifiers, resource identifiers, metadata lockdown, and provider cleanup. Core contains none of those implementation details.
+- validate its configuration and declare the policies it can enforce;
+- check selected service capabilities without mutation during doctor;
+- resolve and verify immutable image references for declared roles;
+- create isolated role resources and enforce permitted paths outside the guests;
+- deny workstation, private-network, other-run, metadata, and management access;
+- establish operator-initiated management and verify guest identity;
+- inventory every run-owned resource and capability by immutable run identity and generation;
+- remove partial or complete runs idempotently and observe external absence;
+- enumerate and sweep run-owned resources using provider state, not just local directories.
 
-The bundled AWS implementation uses Terraform internally. A third-party implementation may use Terraform or another tool without changing dr-hands.
+The same lifecycle serves triage, gravity, and custom workflows. If a provider cannot enforce public-web restrictions or gravity's tighter policy, it must reject that workflow. A guest firewall is not a fallback for missing external enforcement.
+
+Inference authority belongs to the selected inference service. The controller coordinates its revocation with provider cleanup; destroying compute alone does not mean a run is removed.
+
+## State and failures
+
+Each run records its provider, non-secret configuration snapshot, resource identities, and generation. Changing the selected provider affects new runs only. Cleanup uses the original provider and inventory and fails visibly if required credentials or external observations are unavailable.
+
+Retries must not attach stale resources or revive expired authority. Removal checks for every guest-writable runtime surface, including storage, interfaces, and policy resources, not only machines. Explicitly exported evidence is outside the runtime inventory and remains hostile.
+
+A provisioner owns its internal infrastructure tool and state layout. The core contract does not require Terraform or AWS-specific identifiers. The wire protocol and per-provider capability tests remain specification work; the old environment-variable command protocol is not retained as the new interface.

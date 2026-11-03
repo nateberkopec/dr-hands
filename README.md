@@ -1,85 +1,51 @@
 # dr-hands
 
-This repository contains specifications and documentation only. The implementation has been archived and removed. Commands and setup instructions below and in the other documents describe the proposed or archived design, not runnable software in this checkout. See [History and recovery](docs/history.md) to read or restore the archived versions.
+Investigate hostile security reports and exercise attacker frameworks against disposable targets without putting your workstation inside the experiment.
 
-Triage private security reports and run attacker frameworks against live targets, on throwaway cloud machines that hold nothing worth stealing.
+This repository contains specifications, documentation, and a configuration example only. There is no application, provisioner, test runner, or deployment tooling. Commands below describe the proposed interface, not software you can run from this checkout. [History and recovery](docs/history.md) preserves earlier implementations.
 
-Security reports come from strangers. They may arrive through GitHub, HackerOne, a text file, or a system of your own. Some carry prompt injection, malicious proof-of-concept code, or a story built to steer your verdict. dr-hands normalizes each report through a report source, then gives the resulting run its own AWS machine, called a box. The box has a coding agent ([Pi](https://github.com/earendil-works/pi)), a locked-down network, and no report-source or GitHub credentials. For runtime work, a gravity machine puts an attacker framework and a target implementation together inside a stricter chamber. [ARTEX](https://github.com/BaaRai/ARTEX) and [RubyGems.org](https://github.com/rubygems/rubygems.org) are the first reference implementations of those roles. The agents are the hands. You stay the head: you read the evidence, run the failing test, and take every repository action yourself.
+## The problem
 
-[SECURITY.md](SECURITY.md) explains the threat model. [VALUES.md](VALUES.md) explains the rules we design by. [GLOSSARY.md](GLOSSARY.md) defines report-source terms.
+A report can lead through malicious links, prompt injection, exploit code, packages, and model files. We assume the agent has root and any target it touches is infected. The goal is a clear, disposable technical boundary, not a trustworthy agent. dr-hands cannot ensure the cognitive security of the person reading the report or its results.
 
-## How a triage goes
+## One tool, pluggable workflows
 
-```sh
-mise run add github GHSA-xxxx-xxxx-xxxx --repo owner/repo
-mise run add text ./report.md --repo owner/repo
-mise run add hackerone 123456 --repo owner/repo
+A **Workflow** declares roles, inputs, permitted connections, and outputs. A **Run** is one execution with its own resources, authority, deadline, and evidence. Triage and gravity share the same lifecycle and cleanup rules.
+
+- **Triage:** an agent investigates a structured report and may follow public HTTP(S) links from inside the isolated run. This accepts disclosure to public services and the risk of hostile outbound requests, while keeping private and management networks out of reach.
+- **Gravity:** an attacker framework exercises a disposable target without general Internet access. ARTEX and RubyGems.org are the reference roles, not fixed engine components. The allowed external service is bounded OpenRouter inference.
+
+Custom workflows use declarative manifests, not local lifecycle hooks. Provisioners implement infrastructure and external policy enforcement. A workflow cannot override mandatory isolation. See [Workflows](docs/workflows.md), the [provisioner contract](provisioners/README.md), and the [glossary](GLOSSARY.md).
+
+## Report data, not source plugins
+
+Supply a UTF-8 JSON report with a version, title, body, and optional comments and provenance. How you obtain it is up to you. GHSA and HackerOne exporters are outside this repository; dr-hands does not execute them or manage their credentials.
+
+The local tool checks structure and size, but never treats the content as safe, follows its links, or renders its markup. The operator selects the workflow and target separately. [Report input](docs/reports.md) defines the contract.
+
+## Proposed configuration flow
+
+Keep ignored `config.toml` beside tracked [`config.example.toml`](config.example.toml). It selects declarative workflow manifests and nests provider-specific settings. Secret aliases refer to a separate fnox file; dr-hands resolves them automatically without a manual `fnox exec` wrapper.
+
+```fish
+dr-hands init
+dr-hands check
+dr-hands doctor --workflow triage
+dr-hands run --workflow triage --report ./report.json
+dr-hands export RUN
+dr-hands remove RUN
 ```
 
-`add` prints a run ID. The remaining commands take that ID, not the source's identifier.
+`init` copies the example without overwriting an existing configuration. `check` is local and does not resolve secrets. `doctor` checks selected credentials and services without creating resources. Only the explicit run command provisions a run. Use `--config /path/to/config.toml` to select another configuration; there are no implicit global or environment-variable overrides.
 
-1. A report source fetches or reads the report on your laptop and saves a normalized snapshot.
-2. Read the scanner's findings, then work with the agent in your terminal. It writes `~/work/VERDICT.md` and a failing test.
-3. Run the test yourself.
-4. `mise run patch RUN` brings the fix to your laptop. Review every line and apply it in your own checkout.
-5. `mise run rm RUN` destroys the box and its OpenRouter key.
+[Setup](docs/setup.md) describes the sequence. [Configuration](docs/configuration.md) specifies the file and fnox integration. The example model is DeepSeek V4.1 Flash 1017; `doctor` must check current OpenRouter availability and policy support rather than assume it.
 
-Each box ends itself 12 hours after it boots.
+## Security and teardown
 
-## How a gravity run goes
+[VALUES.md](VALUES.md) states the problems and design principles. [SECURITY.md](SECURITY.md) defines assumptions, boundaries, and accepted risks. The ambition is that escape would require a CVSS 9+ zero-day in mature upstream infrastructure; the actual requirement is that every escape path cross a named upstream security boundary, with as few such assumptions as possible. No numeric severity or novelty of a future exploit is guaranteed.
 
-```sh
-mise run gravity artex rubygems.org
-```
-
-1. dr-hands creates a private chamber with the selected attacker framework on one AWS machine and the selected target implementation on another. In this reference run, those are ARTEX and a synthetic copy of RubyGems.org.
-2. The attacker framework attacks only that target. Neither machine has general Internet access or a production credential.
-3. `mise run gravity-results RUN` saves findings, traffic and evidence as opaque files on your laptop.
-4. `mise run gravity-rm RUN` destroys the chamber and proves every remote resource and authority absent.
-
-Guest root is expected. The boundary is AWS's hypervisor and managed network, outside both machines. [GRAVITY.md](GRAVITY.md) is the one-page acceptance contract and the starting point for its threat model, executable behavior, and formal verification.
-
-## Models
-
-Each box or gravity run gets its own [OpenRouter](https://openrouter.ai) key. The key has a dollar limit and dies with its compute. It lives in a dr-hands OpenRouter workspace, which code sets up for you. The workspace enforces these rules, so a hostile guest cannot change them:
-
-- Only the models you list can answer.
-- Every request uses zero data retention.
-- OpenRouter's hosted tools, such as web search and web fetch, are off.
-
-## Commands
-
-`mise tasks` lists every command. Run `refresh RUN` after a report changes at its source. Run `image` after you change stacks, and `setup-openrouter` after you change models. `down` destroys every box and sweeps up leftovers.
-
-## What you need
-
-- macOS or Linux. On Windows, use WSL.
-- [mise](https://mise.jdx.dev) and the GitHub CLI, signed in. mise installs everything else.
-- A secret store that [fnox](https://fnox.jdx.dev) can read, such as 1Password
-- An AWS account with Organizations. Setup creates a separate member account for boxes.
-- A [Tailscale](https://tailscale.com) tailnet you administer
-- An OpenRouter account with credits
-
-dr-hands runs no persistent control plane of its own. Experiment-local services die with their machines. [docs/setup.md](docs/setup.md) walks through the one-time setup.
-
-## Configure
-
-Put your settings in `mise.local.toml`. Git ignores it.
-
-```toml
-[env]
-DR_HANDS_STACKS = "python node"
-DR_HANDS_MODELS = "anthropic/claude-opus-5.5"
-DR_HANDS_REPORT_SOURCE_HACKERONE = "hackerone-dr-hands"
-DR_HANDS_PROVISIONER = "aws"
-```
-
-GitHub and text are built-in report sources. A custom source is a trusted local executable configured as `DR_HANDS_REPORT_SOURCE_NAME`; the example makes `hackerone` available to `add`. Source credentials stay in your own secret store through fnox and never enter a box.
-
-AWS is the built-in provisioner. Set `DR_HANDS_PROVISIONER` to an absolute executable to plug in another implementation without changing core commands.
-
-List models by their OpenRouter IDs. The first one is the agent's default. The proposed stack layout is `stacks/`. [docs/configuration.md](docs/configuration.md) covers report sources, every setting, the per-report budget, and how to add a stack.
+Every run has bounded inference authority and an expiry. Removal destroys all guest-writable runtime resources, revokes authority, and verifies absence. Explicitly exported evidence may survive as opaque, still-hostile files. Public-web requests and copies made by external services cannot be undone by teardown.
 
 ## Specifications and verification
 
-[GRAVITY.md](GRAVITY.md), [SECURITY.md](SECURITY.md), and the [formal specifications](formal/README.md) describe the intended behavior and trust boundaries. The Alloy and TLA+ models remain; their execution harness and CI have been archived. Gherkin feature files are available only in the [archived design stack](docs/history.md). This checkout has no application, test runner, or deployment tooling.
+[GRAVITY.md](GRAVITY.md) describes the restricted gravity workflow. Its [Alloy and TLA+ specifications](formal/README.md) remain, but the execution harness and CI are archived. The gravity network model does not prove public-web triage or arbitrary workflow manifests. Gherkin scenarios remain available in the [archived design stack](docs/history.md), not as current acceptance tests.
