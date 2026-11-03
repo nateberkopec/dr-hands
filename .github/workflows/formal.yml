@@ -1,0 +1,22 @@
+name: Formal verification
+
+on:
+  pull_request:
+  push:
+    branches:
+      - main
+      - design/**
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+      - uses: jdx/mise-action@5228313ee0372e111a38da051671ca30fc5a96db
+        with:
+          install_args: java aqua:fish-shell/fish-shell
+      - run: mise run verify-formal
