@@ -1,9 +1,0 @@
-#!/usr/bin/env fish
-
-source (status dirname)/../lib/box.fish
-
-parse_report $argv[1]
-cat $state/findings.txt
-echo "The trusted copy of this report is $state/advisory.md on this laptop; the agent can edit the one on the box."
-echo
-box_ssh -t 'bash -lc herdr'

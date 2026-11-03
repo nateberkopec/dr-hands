@@ -1,5 +1,7 @@
 # dr-hands
 
+This repository contains specifications and documentation only. The implementation has been archived and removed. Commands and setup instructions below and in the other documents describe the archived design, not runnable software in this checkout. See [History and recovery](docs/history.md) to read or restore the archived versions.
+
 Triage private GitHub security reports with coding agents, on throwaway cloud machines that hold nothing worth stealing.
 
 Security reports come from strangers. Some carry prompt injection, malicious proof-of-concept code, or a story built to steer your verdict. dr-hands gives each report its own AWS machine, called a box. The box has a coding agent ([Pi](https://github.com/earendil-works/pi)), a locked-down network, and no credentials. The agents are the hands. You stay the head: you read the verdict, run the failing test, and take every GitHub action yourself.
@@ -45,4 +47,4 @@ Stacks live in `stacks/`. [docs/configuration.md](docs/configuration.md) covers 
 
 ## Status
 
-dr-hands is early. The full `add` flow has not yet run against a real box, and there are no end-to-end tests yet.
+There is no implementation in this checkout. The archived implementation had not completed the full `add` flow against a real box and had no end-to-end tests.

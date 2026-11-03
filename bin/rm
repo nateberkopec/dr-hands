@@ -1,7 +1,0 @@
-#!/usr/bin/env fish
-
-source (status dirname)/../lib/box.fish
-
-test (count $argv) -eq 1; or fail "usage: rm GHSA-xxxx-xxxx-xxxx"
-parse_report $argv[1]
-remove_box

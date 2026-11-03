@@ -1,4 +1,0 @@
-[tools]
-node = "24.22.2"
-"npm:@earendil-works/pi-coding-agent" = "1.4.0"
-"npm:@rynfar/meridian" = "1.86.0"
