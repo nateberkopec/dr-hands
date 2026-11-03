@@ -12,16 +12,9 @@ for id in (printf '%s\n' $reports | sort -u | string match -v '')
     remove_box; or set failed 1
 end
 
-set -l instances (aws ec2 describe-instances --filters Name=tag:dr-hands,Values=box Name=instance-state-name,Values=pending,running,stopping,stopped \
-    --query 'Reservations[].Instances[].InstanceId' --output text)
-or begin
-    echo "dr-hands: could not list instances" >&2
+current_provisioner sweep; or begin
+    echo "dr-hands: provisioner sweep failed" >&2
     set failed 1
-end
-for instance in (string split -n \t -- $instances)
-    aws ec2 terminate-instances --instance-ids $instance >/dev/null
-    and echo "Terminated leftover instance $instance"
-    or set failed 1
 end
 set -l devices (tailnet_devices ''); or begin
     echo "dr-hands: could not list tailnet devices" >&2

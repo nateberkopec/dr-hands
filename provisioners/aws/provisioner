@@ -1,0 +1,134 @@
+#!/usr/bin/env fish
+
+set here (realpath (status dirname))
+set repo (realpath $here/../..)
+
+function fail
+    echo "aws provisioner: $argv" >&2
+    exit 1
+end
+
+function need --argument-names name
+    set -q $name; and test -n "$$name"; or fail "$name is required"
+end
+
+function need_aws
+    need AWS_REGION
+end
+
+function terraform_box
+    terraform -chdir=$here/box $argv
+end
+
+function migrate_legacy_state
+    set -l legacy $repo/box
+    test -d $legacy; or return 0
+    for name in terraform.tfstate terraform.tfstate.backup
+        if test -e $legacy/$name
+            test ! -e $here/box/$name; or fail "both old and new Terraform state contain $name"
+            mv $legacy/$name $here/box/$name; or fail "could not migrate $name"
+        end
+    end
+    if test -d $legacy/terraform.tfstate.d
+        mkdir -p $here/box/terraform.tfstate.d
+        for workspace in $legacy/terraform.tfstate.d/*
+            test -e $workspace; or continue
+            set -l target $here/box/terraform.tfstate.d/(basename $workspace)
+            test ! -e $target; or fail "both old and new Terraform state contain workspace "(basename $workspace)
+            mv $workspace $target; or fail "could not migrate workspace "(basename $workspace)
+        end
+        rmdir $legacy/terraform.tfstate.d 2>/dev/null
+    end
+end
+
+function workspaces
+    set -l names (TF_WORKSPACE= terraform_box workspace list); or return 1
+    string trim -c ' *' -- $names | string match -v -e default | string match -v ''
+end
+
+set command $argv[1]
+set -e argv[1]
+
+switch $command
+    case image-fingerprint
+        need_aws
+        source $repo/lib/box.fish
+        begin
+            image_settings
+            printf "AWS_REGION='%s'\n" $AWS_REGION
+            cat (image_inputs) $here/base-ami $here/provisioner $here/build-image
+        end | shasum -a 256 | string split -f1 ' '
+    case build-image
+        need_aws
+        need DR_HANDS_IMAGE_FINGERPRINT
+        exec $here/build-image
+    case init
+        need_aws
+        migrate_legacy_state
+        terraform_box init -input=false >/dev/null
+    case create
+        need_aws
+        for name in DR_HANDS_RUN DR_HANDS_IMAGE DR_HANDS_SSH_PUBLIC_KEY DR_HANDS_TAILNET_AUTH_KEY
+            need $name
+        end
+        TF_WORKSPACE= terraform_box workspace new $DR_HANDS_RUN >/dev/null; or fail "could not create Terraform workspace $DR_HANDS_RUN"
+        set -lx TF_WORKSPACE $DR_HANDS_RUN
+        set -lx TF_VAR_tailnet_auth_key $DR_HANDS_TAILNET_AUTH_KEY
+        terraform_box apply -auto-approve -input=false \
+            -var report=$DR_HANDS_RUN -var ami=$DR_HANDS_IMAGE -var ssh_public_key=$DR_HANDS_SSH_PUBLIC_KEY >/dev/null
+        or fail "terraform apply failed"
+        terraform_box output -raw instance_id
+    case ssh-host-key
+        need_aws
+        need DR_HANDS_RESOURCE
+        for i in (seq 30)
+            set -l host_key (aws ec2 get-console-output --instance-id $DR_HANDS_RESOURCE --latest --query Output --output text \
+                | sed -n '/-----BEGIN SSH HOST KEY KEYS-----/,/-----END SSH HOST KEY KEYS-----/p' \
+                | string match -r '^ssh-ed25519 \S+')
+            if test -n "$host_key"
+                printf '%s\n' $host_key
+                exit 0
+            end
+            sleep 5
+        end
+        fail "could not read $DR_HANDS_RESOURCE SSH host key from its console"
+    case seal
+        need_aws
+        need DR_HANDS_RESOURCE
+        aws ec2 modify-instance-metadata-options --instance-id $DR_HANDS_RESOURCE --http-endpoint disabled >/dev/null
+        or fail "could not disable the instance metadata service"
+        for i in (seq 30)
+            set -l metadata (aws ec2 describe-instances --instance-ids $DR_HANDS_RESOURCE \
+                --query 'Reservations[0].Instances[0].MetadataOptions.[State,HttpEndpoint]' --output text \
+                | string replace -a \t ' ')
+            test "$metadata" = "applied disabled"; and exit 0
+            sleep 2
+        end
+        fail "the instance metadata service did not turn off"
+    case destroy
+        need_aws
+        need DR_HANDS_RUN
+        set -l names (workspaces); or fail "could not list Terraform workspaces"
+        if contains -- $DR_HANDS_RUN $names
+            set -lx TF_WORKSPACE $DR_HANDS_RUN
+            set -lx TF_VAR_tailnet_auth_key unused
+            terraform_box destroy -auto-approve -input=false \
+                -var report=$DR_HANDS_RUN -var ami=unused -var ssh_public_key=unused >/dev/null
+            and TF_WORKSPACE= terraform_box workspace delete $DR_HANDS_RUN >/dev/null
+            or fail "terraform destroy failed"
+        end
+    case list
+        need_aws
+        workspaces
+    case sweep
+        need_aws
+        set -l instances (aws ec2 describe-instances \
+            --filters Name=tag:dr-hands,Values=box Name=instance-state-name,Values=pending,running,stopping,stopped \
+            --query 'Reservations[].Instances[].InstanceId' --output text); or fail "could not list instances"
+        for instance in (string split -n \t -- $instances)
+            aws ec2 terminate-instances --instance-ids $instance >/dev/null; or fail "could not terminate $instance"
+            echo "Terminated leftover instance $instance"
+        end
+    case '*'
+        fail "usage: provisioner image-fingerprint|build-image|init|create|ssh-host-key|seal|destroy|list|sweep"
+end

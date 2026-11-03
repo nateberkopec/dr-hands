@@ -4,13 +4,15 @@ terraform = "1.17.1"
 jq = "1.8.2"
 ruby = "4.0.9"
 fnox = "1.45.0"
+java = "temurin-21"
+"aqua:fish-shell/fish-shell" = "4.2.1"
 
 [tasks.bootstrap-aws]
 description = "One-time: create the dr-hands AWS account and deploy key. Run after `aws login` as root."
 run = "bin/bootstrap-aws"
 
 [tasks.image]
-description = "Build the box image from image/ and the stacks in DR_HANDS_STACKS"
+description = "Build the selected provisioner's box image from image/ and DR_HANDS_STACKS"
 run = "fnox exec -- bin/image"
 
 [tasks.add]
@@ -36,3 +38,11 @@ run = "fnox exec -- bin/rm"
 [tasks.down]
 description = "Destroy every box and sweep leftovers"
 run = "fnox exec -- bin/down"
+
+[tasks.verify-formal-doctor]
+description = "Check formal-verification prerequisites without changing evidence"
+run = "formal/verify.fish doctor"
+
+[tasks.verify-formal]
+description = "Check the gravity architecture and lifecycle models"
+run = "formal/verify.fish"

@@ -1,7 +1,5 @@
 if_missing = "error"
 
 [secrets]
-AWS_ACCESS_KEY_ID = { description = "The dr-hands deploy key ID that bootstrap-aws saved" }
-AWS_SECRET_ACCESS_KEY = { description = "The dr-hands deploy key secret that bootstrap-aws saved" }
 TAILSCALE_OAUTH_CLIENT_ID = { description = "The Tailscale OAuth client ID for tag:ghsa" }
 TAILSCALE_OAUTH_CLIENT_SECRET = { description = "The Tailscale OAuth client secret for tag:ghsa" }

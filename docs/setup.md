@@ -113,8 +113,16 @@ It takes 15 to 20 minutes.
 
 ## 7. Your first report
 
+Use the built-in text source for a harmless first test:
+
 ```fish
-mise run add owner/repo GHSA-xxxx-xxxx-xxxx
+mise run add text ./report.md --repo owner/repo
 ```
 
-A published advisory works as a harmless first test.
+Use the built-in GitHub source for a GitHub private vulnerability report:
+
+```fish
+mise run add github GHSA-xxxx-xxxx-xxxx --repo owner/repo
+```
+
+[configuration.md](configuration.md#report-sources) explains how to plug in HackerOne or another trusted local report source.

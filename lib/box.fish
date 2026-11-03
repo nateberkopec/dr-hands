@@ -6,7 +6,9 @@ function fail
     exit 1
 end
 
-for setting in AWS_REGION DR_HANDS_STACKS DR_HANDS_BROKER_HOST DR_HANDS_BROKER_IP DR_HANDS_BROKER_SSH DR_HANDS_BROKER_TOKEN_FILE
+source $repo/lib/provisioner.fish
+
+for setting in DR_HANDS_STACKS DR_HANDS_BROKER_HOST DR_HANDS_BROKER_IP DR_HANDS_BROKER_SSH DR_HANDS_BROKER_TOKEN_FILE
     set -q $setting; or fail "$setting is not set; see docs/configuration.md"
 end
 
@@ -55,13 +57,6 @@ function image_inputs
     end
 end
 
-function image_fingerprint
-    begin
-        image_settings
-        cat (image_inputs)
-    end | shasum -a 256 | string split -f1 ' '
-end
-
 function tailscale_token
     test -n "$tailscale_access_token"; and return
     set -g tailscale_access_token (curl -sf -d "client_id=$TAILSCALE_OAUTH_CLIENT_ID" --data-urlencode "client_secret=$TAILSCALE_OAUTH_CLIENT_SECRET" https://api.tailscale.com/api/v2/oauth/token | jq -r .access_token)
@@ -78,24 +73,21 @@ function tailnet_devices --argument-names prefix
     printf '%s\n' $devices | jq -c --arg prefix "$prefix" '.devices[] | select((.tags // []) | index("tag:ghsa")) | select(.name | startswith($prefix))'
 end
 
-function terraform_box
-    terraform -chdir=$repo/box $argv
-end
-
 function box_workspaces
-    set -l workspaces (TF_WORKSPACE= terraform_box workspace list); or return 1
-    string trim -c ' *' -- $workspaces | string match -v -e default | string match -v ''
+    current_provisioner init; or return 1
+    current_provisioner list
 end
 
 function remove_box
     set -l failed
-    set -l workspaces (box_workspaces); or set failed $failed "list Terraform workspaces"
-    if contains -- $box $workspaces
-        TF_WORKSPACE=$box TF_VAR_tailnet_auth_key=unused terraform_box destroy -auto-approve -input=false \
-            -var report=$box -var ami=unused -var ssh_public_key=unused >/dev/null
-        and TF_WORKSPACE= terraform_box workspace delete $box >/dev/null
-        or set failed $failed "terraform destroy"
+    set -lx DR_HANDS_RUN $box
+    if test -f $state/provisioner-resource
+        set -lx DR_HANDS_RESOURCE (string trim < $state/provisioner-resource)
     end
+    run_provisioner init >/dev/null
+    or set failed $failed "provisioner initialization"
+    run_provisioner destroy >/dev/null
+    or set failed $failed "provisioner destroy"
     set -l devices (tailnet_devices $box.); or set failed $failed "list tailnet devices"
     for device in $devices
         tailscale_api DELETE /device/(echo $device | jq -r .id) >/dev/null
