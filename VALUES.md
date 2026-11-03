@@ -4,17 +4,17 @@ These are the rules we design dr-hands by. The feature files in `features/` say 
 
 ## Security first
 
-Every report is hostile, and we treat the agent as the attacker. [SECURITY.md](SECURITY.md#what-we-assume) explains the threat model, [how dr-hands protects you](SECURITY.md#how-dr-hands-protects-you), and [the risks we accept](SECURITY.md#risks-we-accept). Two design rules follow from it:
+Every report is hostile, and we treat every agent and experiment guest as the attacker. [SECURITY.md](SECURITY.md#what-we-assume) explains the triage threat model, [the gravity threat model](SECURITY.md#gravity-machine), [how dr-hands protects you](SECURITY.md#how-dr-hands-protects-you), and [the risks we accept](SECURITY.md#risks-we-accept). Two design rules follow from it:
 
-- **Enforce rules where a hostile box cannot reach them.** A rule on the box holds only until the agent gets root. So the rules that matter live outside it: cloud firewalls, the tailnet policy, and the OpenRouter workspace.
+- **Enforce rules where a hostile guest cannot reach them.** A rule on the guest holds only until the agent gets root. So the rules that matter live outside it: cloud networks, managed access policy, and the OpenRouter workspace.
 - **Trust intake code, never intake content.** A report source runs as you and must be trusted. Every snapshot it produces remains hostile and gets the same scan and isolation, whatever its origin.
-- **Teardown proves itself.** Removing a box checks that nothing survived, and fails loudly when something did.
+- **Teardown proves itself.** Removing a run checks that nothing survived, and fails loudly when something did.
 
 When we accept a new risk, we add it to SECURITY.md.
 
-## Run no servers of our own
+## Run no persistent control plane of our own
 
-We don't run a gateway, a database, or an always-on machine. Managed services enforce the rules for us. You have nothing to patch between reports.
+Managed services enforce the rules. Experiment-local servers and databases are hostile workloads that die with their machines. You have nothing to patch between runs.
 
 ## Run anywhere
 
@@ -30,7 +30,7 @@ Personal settings live in `mise.local.toml`. Secrets live in your own secret sto
 
 ## Done means proven
 
-A feature is done when its scenarios pass against real services, and the evidence survives cleanup. A test on a stand-in, such as a container in place of a real Linux machine, lists what it did not cover.
+A feature is done when its scenarios pass against real services, and the evidence survives cleanup. Security architecture is also checked as an explicit model, with its assumptions and bounds beside it. A test on a stand-in, such as a container in place of a real Linux machine, lists what it did not cover.
 
 ## Build only what is needed
 
