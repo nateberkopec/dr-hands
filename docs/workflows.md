@@ -1,6 +1,6 @@
 # Workflows
 
-Triage and gravity are supplied workflows in one tool, not separate execution engines. Every workflow uses the same Run identity, provisioning lifecycle, authority limits, evidence handling, and verified removal path. This document specifies the interface; it does not implement a workflow loader.
+Triage and gravity are supplied workflows in one tool, not separate execution engines. Every workflow uses the same Run identity, provisioning lifecycle, authority limits, evidence handling, and verified removal path.
 
 ## Declarative manifest
 
@@ -17,7 +17,7 @@ Commands run only inside the selected guest role. A manifest has no workstation 
 
 Image identifiers must be immutable provider references or content digests. A valid manifest identifies what will run, not whether it is benign. Images, dependencies, model files, commands, agents, and targets are all treated as infected. Loading a malicious model or package inside a guest may execute arbitrary code; guest root is already assumed.
 
-The controller rejects unknown fields, mutable image selections, undeclared inputs, invalid role references, unsupported network requirements, and any request to bypass mandatory isolation. A provider that cannot enforce a requested policy outside the guest must refuse the run rather than approximate it with a guest firewall. Exact field names for the workflow manifest remain a specification task; no executable plugin API is implied.
+The controller rejects unknown fields, mutable image selections, undeclared inputs, invalid role references, unsupported network requirements, and any request to bypass mandatory isolation. A provider that cannot enforce a requested policy outside the guest must refuse the run rather than approximate it with a guest firewall.
 
 ## Supplied workflows
 

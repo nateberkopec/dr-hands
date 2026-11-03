@@ -1,6 +1,6 @@
 # Security
 
-dr-hands specifies disposable runs for hostile investigations and experiments. Triage and gravity are declarative workflows in the same tool, not separate security engines. This page describes intended boundaries, not guarantees established by an implementation in this repository.
+dr-hands specifies disposable runs for hostile investigations and experiments. Triage and gravity are declarative workflows in the same tool, not separate security engines. This page defines the security boundaries and their assumptions.
 
 ## Report a problem
 
@@ -124,7 +124,7 @@ The reference attacker is a pinned, source-built ARTEX release, kept as an exter
 
 The attacker-framework implementation holds its own capped OpenRouter key because disclosure of that key does not enlarge its authority. The workspace, not guest configuration, enforces the model list, hosted-tool ban, retention policy, budget, and expiry. The target holds no secret.
 
-No attacker-framework UI is exposed. Control commands discard guest output. Evidence crosses SSH as opaque bytes into fixed filenames and is not extracted automatically. A live viewer is a separate future design problem.
+No attacker-framework UI is exposed. Control commands discard guest output. Evidence crosses SSH as opaque bytes into fixed filenames and is not extracted automatically.
 
 ### The trusted set
 
@@ -142,7 +142,7 @@ Alloy checks principals, paths, capability scope, chamber separation, and the tr
 
 TLA+ checks provisioning, provider rejection and retry, delayed completion across run generations, activation, expiry, revocation, deletion, observation, and removal. Every provider operation carries an immutable run and generation. Deletion requests and observed absence are separate states. Expected-failing mutations prove that the model detects premature removal, wrong-run deletion, and stale authority attachment. Expiry safety is independent of the controller; eventual resource deletion uses A9.
 
-The models do not prove AWS or OpenRouter correct, prove arbitrary scopes, or prove future Terraform matches the architecture. The feature scenarios are the implementation-level evidence for that last step.
+The models do not prove AWS or OpenRouter correct, prove arbitrary scopes, or prove infrastructure code matches the architecture. The feature scenarios are the implementation-level evidence for that last step.
 
 ## Risks we accept
 

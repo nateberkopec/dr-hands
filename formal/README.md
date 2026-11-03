@@ -1,6 +1,6 @@
 # Formal verification
 
-This checkout retains the Alloy and TLA+ specifications and model-checker configurations, but no execution harness or CI. The commands and evidence protocol below document the archived harness and requirements for a future implementation. See [History and recovery](../docs/history.md) to recover the runnable version. Formal claims are not evidence that the application has been implemented. The Alloy network model covers the restricted gravity workflow only; it does not model public-web triage or the general declarative workflow interface. The lifecycle model remains an abstract reference for shared Run behavior, not a proof of the new manifest/configuration contracts.
+The Alloy network model covers the restricted gravity workflow only; it does not model public-web triage or the general declarative workflow interface. The lifecycle model remains an abstract reference for shared Run behavior, not a proof of the new manifest/configuration contracts.
 
 This is the deepest layer of the gravity acceptance pyramid. Start at [GRAVITY.md](../GRAVITY.md), then read the [threat model](../SECURITY.md#gravity-machine) and [behavioral acceptance](https://github.com/nateberkopec/dr-hands/blob/archive/design-stack-before-spec-only/features/gravity.feature) before reading the models.
 
@@ -158,6 +158,6 @@ The model deliberately collapses provider-specific resources. Implementation sce
 
 ## What these checks do not prove
 
-They do not prove that AWS or OpenRouter satisfy A4 and A5, that cryptography holds, that the finite scope generalizes, that the model contains every relevant capability, or that future infrastructure code implements this design. They also do not assign a CVSS score to an unknown vulnerability.
+They do not prove that AWS or OpenRouter satisfy A4 and A5, that cryptography holds, that the finite scope generalizes, that the model contains every relevant capability, or that infrastructure code implements this design. They also do not assign a CVSS score to an unknown vulnerability.
 
-Their purpose is narrower: make every trust assumption visible, find ordinary paths that avoid those assumptions, and reject lifecycle orderings that strand authority or declare cleanup early. Evidence persistence does not imply content safety. Real-service checks would still be needed to establish that an implementation matches the models.
+Their purpose is narrower: make every trust assumption visible, find ordinary paths that avoid those assumptions, and reject lifecycle orderings that strand authority or declare cleanup early. Evidence persistence does not imply content safety. Real-service checks establish whether an implementation matches the models.

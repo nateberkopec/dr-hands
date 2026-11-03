@@ -1,14 +1,12 @@
 # Setup
 
-This is the intended first-run experience, not executable setup instructions for this specs-only repository. Earlier setup instructions and implementations are available through [History and recovery](history.md).
-
 ## 1. Create a configuration
 
-The future `dr-hands init` command copies tracked `config.example.toml` to ignored `config.toml` beside it. It refuses to overwrite a file and makes no network calls. The user can also copy and edit the example manually.
+The `dr-hands init` command copies tracked `config.example.toml` to ignored `config.toml` beside it. It refuses to overwrite a file and makes no network calls. The user can also copy and edit the example manually.
 
 Choose a provisioner, select workflow manifest paths, and set inference models, budget, and lifetime. Provider-specific settings stay nested under `provisioners.<name>`. Workflow manifests declare role images and target selection; untrusted reports cannot choose these for you.
 
-The example's workflow files are not present yet. This repository defines their contract in [Workflows](workflows.md), not an operational installation.
+[Workflows](workflows.md) defines the manifest contract.
 
 ## 2. Connect your existing secret store
 

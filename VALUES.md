@@ -1,6 +1,6 @@
 # Values
 
-These are the rules we design dr-hands by. The specifications describe the intended behavior. This file says why.
+These are the rules we design dr-hands by. The specifications describe the behavior. This file says why.
 
 ## Problems we solve
 

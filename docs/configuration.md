@@ -1,7 +1,5 @@
 # Configuration
 
-This is the proposed configuration experience. Only the example file and documentation exist; commands and integrations are not implemented.
-
 ## Files and selection
 
 Tracked [`config.example.toml`](../config.example.toml) is the canonical template. Personal `config.toml` sits next to it and is gitignored. `dr-hands init` copies the example to `config.toml` and refuses to overwrite an existing file. It does not install tools, log in, access a secret store, create a fnox configuration, or deploy resources.
@@ -26,7 +24,7 @@ These rules apply to dr-hands settings. An external credential tool may still us
 | `inference.secrets` | Operator credential names mapped to fnox aliases |
 | `run.lifetime_hours` | Positive lifetime, at most twelve hours |
 
-The example uses DeepSeek V4.1 Flash 1017, a five-dollar budget, and a twelve-hour lifetime as editable examples, not hidden defaults. Its workflow paths describe the intended layout; workflow files are not shipped in this specs-only checkout. The example is therefore parseable TOML, not a runnable installation. The AWS and OpenRouter aliases must be mapped in the user's fnox configuration before use.
+The example uses DeepSeek V4.1 Flash 1017, a five-dollar budget, and a twelve-hour lifetime as editable examples, not hidden defaults. The AWS and OpenRouter aliases must be mapped in the user's fnox configuration before use.
 
 Unknown keys, unsupported versions, wrong types, duplicate keys, missing selected-provider settings, invalid limits, and undeclared secret aliases are errors. Each provider owns the schema under its own table; core settings contain no AWS-specific keys. A run cannot silently fall back to AWS when its selected provider is missing. Secret values are forbidden in this file. Malformed configuration errors identify the field, not its potentially sensitive contents.
 
@@ -44,7 +42,7 @@ Provisioner control-plane code receives only the operator credentials its operat
 
 ## Commands and side effects
 
-| Proposed command | What it does | What it must not do |
+| Command | What it does | What it must not do |
 | --- | --- | --- |
 | `dr-hands init` | Copies the example to adjacent `config.toml` | Overwrite files, resolve secrets, contact services, or provision |
 | `dr-hands check` | Validates config, manifests, required aliases, and local paths | Resolve secret values or contact remote services |

@@ -1,12 +1,10 @@
 # Provisioners
 
-This is an infrastructure interface specification. No provisioner implementation is present in this checkout. [Archived versions](../docs/history.md) contain the previous AWS implementation.
-
 A provisioner implements a Run's infrastructure and externally enforced security boundary. Workflows declare roles and requirements; they do not run local lifecycle hooks or choose their own infrastructure credentials.
 
 ## Selection and configuration
 
-`config.toml` selects `provisioner = "aws"` or another explicitly installed integration. Settings belong under `provisioners.<name>`, with fnox aliases under `provisioners.<name>.secrets`. The integration mechanism for third-party provisioners remains to be specified; a report or workflow manifest cannot supply a local executable path.
+`config.toml` selects `provisioner = "aws"` or another explicitly installed integration. Settings belong under `provisioners.<name>`, with fnox aliases under `provisioners.<name>.secrets`. A report or workflow manifest cannot supply a local executable path.
 
 Provisioner code operates with operator authority and must be installed deliberately. This is distinct from guest role code, which is assumed malicious, and report data, which is never executed locally. Using another provider requires reviewing its named security boundaries and supported policies; interface compatibility alone does not establish containment.
 
@@ -34,4 +32,4 @@ Each run records its provider, non-secret configuration snapshot, resource ident
 
 Retries must not attach stale resources or revive expired authority. Removal checks for every guest-writable runtime surface, including storage, interfaces, and policy resources, not only machines. Explicitly exported evidence is outside the runtime inventory and remains hostile.
 
-A provisioner owns its internal infrastructure tool and state layout. The core contract does not require Terraform or AWS-specific identifiers. The wire protocol and per-provider capability tests remain specification work; the old environment-variable command protocol is not retained as the new interface.
+A provisioner owns its internal infrastructure tool and state layout. The core contract does not require Terraform or AWS-specific identifiers.

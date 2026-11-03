@@ -67,13 +67,13 @@ The trusted set is deliberately limited to:
 - AWS IAM, EC2 isolation, VPC enforcement, Instance Connect, DNS Firewall, and Network Firewall;
 - OpenRouter's workspace, key, budget, and expiry enforcement.
 
-Attacker and target implementations—including ARTEX, RubyGems.org, and their dependencies—guest Linux, Docker, package code, guest policy, target contents, and findings are not trusted. If a design needs another trusted component, it does not satisfy this proposal.
+Attacker and target implementations—including ARTEX, RubyGems.org, and their dependencies—guest Linux, Docker, package code, guest policy, target contents, and findings are not trusted. If a design needs another trusted component, it does not satisfy this contract.
 
 ## Verify from here
 
 1. Read the numbered assumptions and invariants in [Security](SECURITY.md#gravity-machine).
 2. Read the real-service scenarios in [the gravity feature](https://github.com/nateberkopec/dr-hands/blob/archive/design-stack-before-spec-only/features/gravity.feature).
 3. Read the model guide, traceability table, and limits in [Formal verification](formal/README.md).
-4. To run the old Alloy/TLA+ harness, recover the [archived version](docs/history.md). There is no verification runner in this checkout.
+4. Check the Alloy and TLA+ results against the evidence requirements in the model guide.
 
-The formal checks concern bounded models under stated assumptions, not arbitrary workflows or public-web triage. The archived feature scenarios describe implementation-level checks; they are not evidence that the revised tool has been built.
+The formal checks concern bounded models under stated assumptions, not arbitrary workflows or public-web triage. The feature scenarios describe implementation-level checks.

@@ -1,6 +1,6 @@
 # Formal proof map
 
-This directory describes the archived harness for reviewing the restricted gravity models. Read `formal/README.md` for the current scope and limitations before using these guides. The commands below require recovering the archived harness; they do not run in this checkout or prove public-web triage.
+This directory describes verification of the restricted gravity models. Read `formal/README.md` for the scope and limitations before using these guides. These checks do not prove public-web triage.
 
 ## Baseline preconditions
 

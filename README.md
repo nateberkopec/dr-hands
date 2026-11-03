@@ -1,8 +1,8 @@
 # dr-hands
 
-Investigate hostile security reports and exercise attacker frameworks against disposable targets without putting your workstation inside the experiment.
+This repository is a specification, not an implementation.
 
-This repository contains specifications, documentation, and a configuration example only. There is no application, provisioner, test runner, or deployment tooling. Commands below describe the proposed interface, not software you can run from this checkout. [History and recovery](docs/history.md) preserves earlier implementations.
+Investigate hostile security reports and exercise attacker frameworks against disposable targets without putting your workstation inside the experiment.
 
 ## The problem
 
@@ -23,7 +23,7 @@ Supply a UTF-8 JSON report with a version, title, body, and optional comments an
 
 The local tool checks structure and size, but never treats the content as safe, follows its links, or renders its markup. The operator selects the workflow and target separately. [Report input](docs/reports.md) defines the contract.
 
-## Proposed configuration flow
+## Configuration flow
 
 Keep ignored `config.toml` beside tracked [`config.example.toml`](config.example.toml). It selects declarative workflow manifests and nests provider-specific settings. Secret aliases refer to a separate fnox file; dr-hands resolves them automatically without a manual `fnox exec` wrapper.
 
@@ -48,4 +48,4 @@ Every run has bounded inference authority and an expiry. Removal destroys all gu
 
 ## Specifications and verification
 
-[GRAVITY.md](GRAVITY.md) describes the restricted gravity workflow. Its [Alloy and TLA+ specifications](formal/README.md) remain, but the execution harness and CI are archived. The gravity network model does not prove public-web triage or arbitrary workflow manifests. Gherkin scenarios remain available in the [archived design stack](docs/history.md), not as current acceptance tests.
+[GRAVITY.md](GRAVITY.md) describes the restricted gravity workflow and its [Alloy and TLA+ specifications](formal/README.md). The gravity network model does not prove public-web triage or arbitrary workflow manifests. The [archived design stack](https://github.com/nateberkopec/dr-hands/tree/archive/design-stack-before-spec-only) preserves earlier versions and their Gherkin scenarios.
