@@ -18,5 +18,14 @@ jobs:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
       - uses: jdx/mise-action@5228313ee0372e111a38da051671ca30fc5a96db
         with:
-          install_args: java aqua:fish-shell/fish-shell
+          install_args: java ruby aqua:fish-shell/fish-shell
       - run: mise run verify-formal
+        env:
+          DR_HANDS_VERIFY_RUN: ${{ github.run_id }}-${{ github.run_attempt }}
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        if: always()
+        with:
+          name: formal-${{ github.run_id }}-${{ github.run_attempt }}
+          path: tmp/verify/formal/${{ github.run_id }}-${{ github.run_attempt }}
+          if-no-files-found: error
+          retention-days: 14
