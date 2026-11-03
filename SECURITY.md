@@ -17,7 +17,7 @@ Every report is hostile, regardless of its source. Its author may control:
 
 A report source is different from a report. Source executables run as you on your laptop and are trusted code. GitHub and text are built in; you are responsible for every custom source you configure.
 
-So we treat the agent as the attacker. It gets a shell, but nothing worth stealing.
+We assume the agent has root from the start. The report is infected, and the target is infected too: the agent may compromise it at any time. Guest root is an initial condition, not an escape.
 
 The report is not the secret. Its author already has it. We protect:
 
@@ -25,7 +25,8 @@ The report is not the secret. Its author already has it. We protect:
 - credentials for GitHub, HackerOne, or any other report source
 - your home network and tailnet
 - your money and AI quota
-- your judgment about the report
+
+We cannot ensure the operator's cognitive security. Reports, agent output, and evidence can manipulate the person reading them, including through meme injection. Technical containment does not protect human judgment.
 
 ## How dr-hands protects you
 
@@ -55,7 +56,7 @@ A local VM or container runs on the machine that holds your keys. If the agent b
 
 ### What we assume
 
-**A1 — Total guest compromise.** The attacker may obtain root on both machines in a chamber and coordinate them. Guest root exists before any property below is evaluated.
+**A1 — Total guest compromise.** The attacker has root on both machines in a chamber and can coordinate them. Guest root and an infected target exist before any property below is evaluated.
 
 **A2 — Hostile software and data.** The attacker-framework implementation, target implementation, models, tools, state stores, operating systems, dependencies, and generated output may be malicious. ARTEX and RubyGems.org are reference implementations, not privileged components.
 
@@ -147,7 +148,7 @@ The models do not prove AWS or OpenRouter correct, prove arbitrary scopes, or pr
 - Allowed hosts work both ways. The agent could send data to GitHub or a package host, or pull in an attacker's package.
 - The agent can reach any server it starts on its own box.
 - Text from the box reaches your terminal and SSH client.
-- The attacker shapes the verdict and the fix. The failing test and your review are the defense.
+- The attacker shapes the verdict and the fix. Tests and human review can help, but neither guarantees the operator's cognitive security; hostile content may manipulate the reviewer.
 
 ### Gravity machine
 
