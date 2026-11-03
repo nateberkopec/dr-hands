@@ -39,6 +39,10 @@ run = "fnox exec -- bin/rm"
 description = "Destroy every box and sweep leftovers"
 run = "fnox exec -- bin/down"
 
+[tasks.verify-formal-doctor]
+description = "Check formal-verification prerequisites without changing evidence"
+run = "formal/verify.fish doctor"
+
 [tasks.verify-formal]
 description = "Check the gravity architecture and lifecycle models"
 run = "formal/verify.fish"

@@ -2,20 +2,26 @@
 
 This is the deepest layer of the gravity acceptance pyramid. Start at [GRAVITY.md](../GRAVITY.md), then read the [threat model](../SECURITY.md#gravity-machine) and [behavioral acceptance](../features/gravity.feature) before reading the models.
 
-Run both model checkers with:
+The [proof map](features/README.md) is the maintained guide to every formal feature and its evidence.
 
-```sh
-mise run verify-formal
-```
+## Verification protocol
 
-The task downloads checksum-pinned Alloy 6.2.0 and TLA+ 1.7.4 jars into `tmp/formal/tools/`. Results go to `tmp/verify/formal/`. Neither directory is committed.
+**Doctor:** `mise run verify-formal-doctor` checks Java, Fish, Ruby, model files, and any cached tool checksums without creating evidence.
+
+**Drive:** `mise run verify-formal` runs the harness self-test, Alloy, three passing TLC configurations, and three expected-failing TLC mutations. Set `DR_HANDS_VERIFY_RUN=NAME` for a stable evidence name.
+
+**Observe:** the harness reads `receipt.json` and TLC logs back, requires the exact Alloy command set, inspects key mutation edges, requires nonzero lifecycle action coverage, and checks each TLA+ mutation's literal violation. Exit status alone is not proof.
+
+**Evidence:** each run writes a new `tmp/verify/formal/NAME/` containing raw logs, the Alloy receipt, the git revision, artifact hashes, `summary.json`, and `SUMMARY.md`. A second run cannot overwrite it.
+
+**Cleanup:** model-checker state directories are scratch and disappear when the process exits. Tool caches and every evidence directory remain. Neither is committed.
 
 ## What is modeled
 
 The two models answer different questions.
 
 - [Alloy](alloy/gravity.als) asks who can reach whom, who holds authority, which component enforces each boundary, and whether an escape can avoid the named trusted set.
-- [TLA+](tla/GravityLifecycle.tla) asks whether partial provisioning, time, controller failure, revocation, deletion, observation, and retries can put a run into an unsafe lifecycle state.
+- [TLA+](tla/GravityLifecycle.tla) asks whether partial provisioning, rejected and delayed provider operations, later generations, time, controller failure, revocation, deletion, and observation can put a run into an unsafe lifecycle state.
 
 Neither model fixes an attacker framework or target implementation. ARTEX and RubyGems.org implement those abstract roles for G1's behavioral canary check; their behavior is not a formal claim.
 
@@ -75,12 +81,13 @@ All Alloy commands use exactly two chambers, two attackers, two targets, and two
 
 The lifecycle model tracks, per run:
 
-- phase and immutable generation;
+- phase, current generation, and operation target;
 - deadline and logical time;
-- resources believed present;
-- deletion requests;
+- resources and authorities with the generation that attached them;
+- pending create, grant, revoke, and delete operations carrying run and generation identity;
+- rejected operations and retries;
+- deletion and revocation requests;
 - externally confirmed absence;
-- revocation requests and confirmed revocation;
 - removal and provisioning failure;
 - trusted local evidence;
 - controller availability.
@@ -89,28 +96,29 @@ The phases are `Absent`, `Provisioning`, `Active`, `RemovalRequested`, `Expired`
 
 Deletion has three different facts: deletion was requested, the resource is no longer present, and an external observation confirmed absence. `Removed` requires the third. Revocation is modeled the same way.
 
-Authority usability is derived from phase, deadline, and confirmed revocation. Advancing time beyond a deadline makes authority unusable without waiting for a controller action.
+Authority usability is derived from phase, deadline, confirmed revocation, and matching generation. Advancing time beyond a deadline makes authority unusable without waiting for a controller action. A delayed completion is consumed, but changes a run only when both its run and generation still match.
 
 ### Actions
 
-The transition system includes starting a run, creating each resource in any order, activation, provisioning failure, requested removal, expiry, revocation, deletion, absence observation, final verification, evidence preservation, time advancement, controller crash, and controller resume.
+The transition system includes starting and later reusing a run, requesting, completing, and rejecting provider operations, activation, provisioning failure, requested removal, expiry, revocation, deletion, absence observation, final verification, evidence preservation, time advancement, controller crash, and controller resume.
 
-The liveness configuration disables crashes and checks cleanup under an available controller. A crash configuration checks all safety invariants with controller loss and return. A reduced isolation configuration checks the same invariants across two interleaved runs. This separation keeps temporal and cross-run checking small while retaining crash states in safety exploration.
+The liveness configuration uses one abstract resource and authority for one generation. A generation configuration exercises rejection, retry, delayed completion, and reuse across two generations without liveness. The crash configuration uses one abstract resource and authority with controller loss, return, rejection, and retry. The isolation configuration checks two interleaved runs. This separation keeps temporal checking small while retaining the distinct failure shapes in safety exploration.
 
 ### Safety
 
 TLC checks that:
 
 - types remain valid;
-- only a complete run becomes active;
+- only a complete run with current-generation authority becomes active;
+- stale operation completions cannot attach resources or authority;
 - deadline expiry makes authority unusable;
-- revocation is complete before deletion and cannot go backwards within a generation;
+- revocation is complete before deletion and cannot go backwards during cleanup;
 - a run's deadline cannot move within a generation;
 - `Removed` means no resource remains and all absence is confirmed;
 - removed runs have no authority;
 - failed provisioning never becomes active;
 - evidence remains run-scoped and monotonic;
-- one transition cannot mutate two runs.
+- an operation can mutate only the run identity it carries.
 
 ### Liveness
 
@@ -121,11 +129,15 @@ With weak or strong fairness for time, revocation, provider deletion, observatio
 - failed provisioning eventually reaches `Removed`;
 - a requested deletion eventually makes the resource absent.
 
-These properties depend on SECURITY.md assumption A9. If the controller never returns or a provider never completes an accepted operation, full deletion cannot be guaranteed. Deadline-based loss of authority remains a safety property and does not use A9.
+These properties depend on SECURITY.md assumption A9. If the controller never returns or a provider never completes an accepted operation, full deletion cannot be guaranteed. Deadline-based loss of authority and stale-generation rejection remain safety properties and do not use A9.
+
+### Negative controls
+
+`GravityLifecycleMutations.tla` deliberately permits premature removal, deletion of the wrong run, and application of a stale authority grant. Each has its own configuration. Verification succeeds only when TLC returns a failing trace naming `RemovedImpliesNothingRemote`, `RunIsolation`, and `NoStaleAttachment`, respectively.
 
 ### Bounds
 
-`GravityLifecycle.cfg` checks one run, three resource classes, two authority classes, a two-tick lease, and time through tick four. `GravityCrash.cfg` checks the same classes with controller crashes through tick three and no temporal properties. `GravityIsolation.cfg` checks two runs with one abstract chamber resource and one authority through tick two. Resources in the full models stand for the network, attacker, and target; authorities stand for inference and management.
+`GravityLifecycle.cfg` checks one run and generation with one abstract resource and authority, a two-tick lease, and time through tick four. `GravityGeneration.cfg` checks the same run across two generations with rejection, retry, and delayed completion. `GravityCrash.cfg` checks one abstract resource and authority with rejection, retry, and controller crashes through tick three. `GravityIsolation.cfg` checks two runs with one abstract resource and authority through tick two. The three mutation configs use the smallest scopes that can exhibit their unsafe behavior.
 
 The model deliberately collapses provider-specific resources. Implementation scenarios must enumerate instances, volumes, interfaces, endpoints, firewall resources, and keys.
 
@@ -136,11 +148,11 @@ The model deliberately collapses provider-specific resources. Implementation sce
 | G1 useful chamber | I3 | `UsefulChamberIsContained` | `ActiveImpliesComplete` | reference ARTEX/RubyGems.org canary and matching log |
 | G2 root contained | I2, I7 | `TargetHasOnlyChamberPaths`, `NoGuestEnforcesPolicy` | authority derived outside guest state | root path and policy-replacement scenarios |
 | G3 declared paths | I2–I5 | `ManagementIsInboundOnly`, `NoCrossChamberReachability` | run-scoped resource state | allowed and forbidden path scenarios |
-| G4 bounded inference | I6, I8, I9 | `InferenceIsRunScoped` | `ExpiredAuthorityUnusable`, `RevocationMonotonic`, `DeadlineStable` | workspace, budget, expiry, and egress-evasion scenarios |
+| G4 bounded inference | I6, I8, I9 | `InferenceIsRunScoped` | `NoStaleAttachment`, `ExpiredAuthorityUnusable`, `RevocationMonotonic`, `DeadlineStable` | workspace, budget, expiry, and egress-evasion scenarios |
 | G5 nothing valuable | I1 | `NoValuableGuestCapability` | authority classes only | credential and immutable-image scenarios |
 | G6 inert output | I14 | outside the model | `EvidenceIsRunScoped`, `EvidenceMonotonic` | status and opaque-result scenarios |
-| G7 expiry first | I8, I9 | capability scope | expiry and revocation properties | absent-controller and stale-operation scenarios |
-| G8 proven teardown | I10–I13 | cross-chamber capability and path checks | removal safety, liveness, and `RunIsolation` | removal, partial failure, sweep, and observation scenarios |
+| G7 expiry first | I8, I9 | capability scope | generation-tagged operations, `NoStaleAttachment`, expiry and revocation properties | absent-controller and stale-operation scenarios |
+| G8 proven teardown | I10–I13 | cross-chamber capability and path checks | run-tagged operations, removal safety, liveness, `RunIsolation`, and wrong-run mutation | removal, partial failure, sweep, and observation scenarios |
 
 ## What these checks do not prove
 

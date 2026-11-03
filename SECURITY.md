@@ -133,7 +133,7 @@ Every attacker and target implementation—including ARTEX, RubyGems.org, and th
 
 Alloy checks principals, paths, capability scope, chamber separation, and the trusted cut set within a stated finite scope. Its useful-chamber witness prevents a disconnected architecture from passing. Known-bad variants must produce instances.
 
-TLA+ checks provisioning, partial failure, activation, expiry, revocation, deletion, observation, and removal. Deletion requests and observed absence are separate states. Expiry safety is independent of the controller; eventual resource deletion uses A9.
+TLA+ checks provisioning, provider rejection and retry, delayed completion across run generations, activation, expiry, revocation, deletion, observation, and removal. Every provider operation carries an immutable run and generation. Deletion requests and observed absence are separate states. Expected-failing mutations prove that the model detects premature removal, wrong-run deletion, and stale authority attachment. Expiry safety is independent of the controller; eventual resource deletion uses A9.
 
 The models do not prove AWS or OpenRouter correct, prove arbitrary scopes, or prove future Terraform matches the architecture. The feature scenarios are the implementation-level evidence for that last step.
 

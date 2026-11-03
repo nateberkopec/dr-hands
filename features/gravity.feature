@@ -99,7 +99,7 @@ Feature: Run an attacker framework against a live target without giving either o
     And both machines have root
     When they replace <guest policy>
     Then every forbidden attacker and target path still fails
-    And every allowed chamber path still succeeds
+    And self-inflicted loss of an allowed path does not count as escape
 
     Examples:
       | guest policy          |
