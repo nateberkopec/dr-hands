@@ -12,7 +12,7 @@ description = "One-time: create the dr-hands AWS account and deploy key. Run aft
 run = "bin/bootstrap-aws"
 
 [tasks.image]
-description = "Build the box image from image/ and the stacks in DR_HANDS_STACKS"
+description = "Build the selected provisioner's box image from image/ and DR_HANDS_STACKS"
 run = "fnox exec -- bin/image"
 
 [tasks.add]

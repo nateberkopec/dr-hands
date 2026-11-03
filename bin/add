@@ -10,13 +10,18 @@ string match -rq '^[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+$' -- $github_repo; or fail "$
 parse_report $argv[2]
 test -d $state; and fail "$report already has a box; use `mise run attach $report` or `mise run rm $report`"
 test -f $repo/state/image; or fail "no image yet; run `mise run image`"
-set -l ami (string split ' ' -- (string trim < $repo/state/image))
-test "$ami[2]" = (image_fingerprint); or fail "the image is out of date with stacks/, image/ or the settings; run `mise run image`"
-set ami $ami[1]
+set -l image (string split ' ' -- (string trim < $repo/state/image))
+test (count $image) -eq 2; or fail "state/image is invalid; run `mise run image`"
+set -l fingerprint (current_provisioner image-fingerprint); or fail "could not fingerprint the provisioner image"
+test (count $fingerprint) -eq 1; and string match -rq '^[A-Za-z0-9._:/@+-]+$' -- "$fingerprint"; or fail "provisioner returned an invalid image fingerprint"
+test "$image[2]" = "$fingerprint"; or fail "the image is out of date with stacks/, image/ or the settings; run `mise run image`"
+set image $image[1]
 
-terraform_box init -input=false >/dev/null; or fail "terraform init failed"
+current_provisioner init; or fail "provisioner initialization failed"
+set -l provisioner_spec (configured_provisioner_spec); or exit 1
 test -f $ssh_key; or ssh-keygen -q -t ed25519 -N '' -C dr-hands -f $ssh_key
 mkdir -p $state
+echo $provisioner_spec >$state/provisioner
 echo $github_repo >$state/github-repo
 source $repo/lib/fetch.fish
 fetch_advisory; or begin
@@ -27,7 +32,6 @@ end
 function abort
     echo dr-hands: $argv >&2
     echo "Removing what was created for $report" >&2
-    set -e TF_WORKSPACE
     remove_box
     exit 1
 end
@@ -35,12 +39,14 @@ end
 echo "Creating the box"
 set -l auth_key (tailscale_api POST '/tailnet/-/keys' -d (jq -cn --arg d "dr-hands $box" '{capabilities:{devices:{create:{reusable:false,ephemeral:true,preauthorized:true,tags:["tag:ghsa"]}}},expirySeconds:600,description:$d}') | jq -r .key)
 test -n "$auth_key"; or abort "could not create a tailnet auth key"
-TF_WORKSPACE= terraform_box workspace new $box >/dev/null; or abort "could not create the Terraform workspace"
-set -gx TF_WORKSPACE $box
-TF_VAR_tailnet_auth_key=$auth_key terraform_box apply -auto-approve -input=false \
-    -var report=$box -var ami=$ami -var ssh_public_key=(string trim < $ssh_key.pub) >/dev/null
-or abort "terraform apply failed"
-set -g instance (terraform_box output -raw instance_id)
+set -lx DR_HANDS_RUN $box
+set -lx DR_HANDS_IMAGE $image
+set -lx DR_HANDS_SSH_PUBLIC_KEY (string trim < $ssh_key.pub)
+set -lx DR_HANDS_TAILNET_AUTH_KEY $auth_key
+set -l resource (run_provisioner create); or abort "provisioner create failed"
+set -e DR_HANDS_TAILNET_AUTH_KEY
+test (count $resource) -eq 1; and string match -rq '^[A-Za-z0-9._:/@+-]+$' -- "$resource"; or abort "provisioner returned an invalid resource"
+echo $resource >$state/provisioner-resource
 
 set -l device
 for i in (seq 60)
@@ -51,25 +57,11 @@ end
 test (count $device) -eq 1; or abort "the box did not join the tailnet"
 echo $device | jq -r '.addresses[] | select(test("^100\\."))' >$state/ip
 
-set -l host_key
-for i in (seq 30)
-    set host_key (aws ec2 get-console-output --instance-id $instance --latest --query Output --output text \
-        | sed -n '/-----BEGIN SSH HOST KEY KEYS-----/,/-----END SSH HOST KEY KEYS-----/p' | string match -r '^ssh-ed25519 \S+')
-    test -n "$host_key"; and break
-    sleep 5
-end
-test -n "$host_key"; or abort "could not read the box's SSH host key from its console"
+set -lx DR_HANDS_RESOURCE $resource
+set -l host_key (run_provisioner ssh-host-key); or abort "could not read the box's SSH host key"
+test (count $host_key) -eq 1; and string match -rq '^ssh-ed25519 [A-Za-z0-9+/=]+(?: [A-Za-z0-9._@+-]+)?$' -- "$host_key"; or abort "the provisioner returned an invalid SSH host key"
 echo (string trim < $state/ip) $host_key >$state/known_hosts
-
-aws ec2 modify-instance-metadata-options --instance-id $instance --http-endpoint disabled >/dev/null
-or abort "could not disable the instance metadata service"
-set -l metadata
-for i in (seq 30)
-    set metadata (aws ec2 describe-instances --instance-ids $instance --query 'Reservations[0].Instances[0].MetadataOptions.[State,HttpEndpoint]' --output text | string replace -a \t ' ')
-    test "$metadata" = "applied disabled"; and break
-    sleep 2
-end
-test "$metadata" = "applied disabled"; or abort "the instance metadata service did not turn off"
+run_provisioner seal; or abort "could not seal the provisioned box"
 
 for i in (seq 30)
     box_ssh true 2>/dev/null; and break

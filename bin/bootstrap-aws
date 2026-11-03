@@ -128,7 +128,7 @@ member iam get-user --user-name dr-hands-deploy >/dev/null 2>&1
 and fail "dr-hands-deploy already exists in $account_id; delete it to bootstrap again"
 member iam create-user --user-name dr-hands-deploy >/dev/null
 or fail "could not create dr-hands-deploy"
-member iam put-user-policy --user-name dr-hands-deploy --policy-name dr-hands-deploy --policy-document (string replace -a REGION $region < $repo/aws/deploy-policy.json | string collect)
+member iam put-user-policy --user-name dr-hands-deploy --policy-name dr-hands-deploy --policy-document (string replace -a REGION $region < $repo/provisioners/aws/deploy-policy.json | string collect)
 or fail "could not attach the deploy policy"
 
 set -l deploy_key (member iam create-access-key --user-name dr-hands-deploy --query 'AccessKey.[AccessKeyId,SecretAccessKey]' --output text | string split \t)

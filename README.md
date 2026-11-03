@@ -69,9 +69,12 @@ Put your settings in `mise.local.toml`. Git ignores it.
 DR_HANDS_STACKS = "python node"
 DR_HANDS_MODELS = "anthropic/claude-opus-5.5"
 DR_HANDS_REPORT_SOURCE_HACKERONE = "hackerone-dr-hands"
+DR_HANDS_PROVISIONER = "aws"
 ```
 
 GitHub and text are built-in report sources. A custom source is a trusted local executable configured as `DR_HANDS_REPORT_SOURCE_NAME`; the example makes `hackerone` available to `add`. Source credentials stay in your own secret store through fnox and never enter a box.
+
+AWS is the built-in provisioner. Set `DR_HANDS_PROVISIONER` to an absolute executable to plug in another implementation without changing core commands.
 
 List models by their OpenRouter IDs. The first one is the agent's default. Stacks live in `stacks/`. [docs/configuration.md](docs/configuration.md) covers report sources, every setting, the per-report budget, and how to add a stack.
 
