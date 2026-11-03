@@ -1,5 +1,0 @@
-Gemfile*
-*.gemspec
-Rakefile
-.ruby-version
-ext/*/extconf.rb
