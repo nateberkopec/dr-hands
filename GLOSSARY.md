@@ -23,3 +23,7 @@ _Avoid_: Advisory copy
 **Run**:
 One report's local state, cloud box, inference authority, and evidence, identified independently of the report source.
 _Avoid_: Report ID, advisory ID
+
+**Provisioner**:
+Trusted local code that creates, inspects, manages, and removes a Run's infrastructure.
+_Avoid_: Provider, driver, backend

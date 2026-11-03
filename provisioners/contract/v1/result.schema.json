@@ -1,0 +1,72 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://dr-hands.example/provisioners/v1/result.schema.json",
+  "type": "object",
+  "required": ["protocolVersion", "run", "status", "resources", "roles", "observedAt"],
+  "additionalProperties": false,
+  "properties": {
+    "protocolVersion": {"const": 1},
+    "run": {
+      "type": "object",
+      "required": ["id", "generation"],
+      "additionalProperties": false,
+      "properties": {
+        "id": {"type": "string", "minLength": 1},
+        "generation": {"type": "integer", "minimum": 1}
+      }
+    },
+    "status": {"enum": ["absent", "provisioning", "ready", "removing", "failed"]},
+    "resources": {
+      "type": "array",
+      "uniqueItems": true,
+      "items": {
+        "type": "object",
+        "required": ["id", "kind", "role"],
+        "additionalProperties": false,
+        "properties": {
+          "id": {"type": "string", "minLength": 1},
+          "kind": {"enum": ["compute", "storage", "network", "management"]},
+          "role": {"enum": ["box", "attacker", "target", "chamber"]}
+        }
+      }
+    },
+    "roles": {
+      "type": "array",
+      "uniqueItems": true,
+      "items": {
+        "type": "object",
+        "required": ["name", "management"],
+        "additionalProperties": false,
+        "properties": {
+          "name": {"enum": ["box", "attacker", "target"]},
+          "management": {"const": "provisioner-exec"}
+        }
+      }
+    },
+    "observedAt": {"type": "string", "format": "date-time"},
+    "observer": {
+      "type": "object",
+      "required": ["identity"],
+      "additionalProperties": false,
+      "properties": {
+        "identity": {"type": "string", "minLength": 1}
+      }
+    },
+    "failure": {
+      "type": "object",
+      "required": ["code", "message"],
+      "additionalProperties": false,
+      "properties": {
+        "code": {"type": "string", "pattern": "^[a-z][a-z0-9-]*$"},
+        "message": {"type": "string", "minLength": 1}
+      }
+    }
+  },
+  "allOf": [
+    {
+      "if": {"type": "object", "properties": {"status": {"const": "failed"}}},
+      "then": {"required": ["failure"]},
+      "else": {"not": {"required": ["failure"]}}
+    }
+  ]
+}

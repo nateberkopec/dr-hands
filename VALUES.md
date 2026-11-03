@@ -4,11 +4,11 @@ These are the rules we design dr-hands by. The feature files in `features/` say 
 
 ## Security first
 
-Every report is hostile, and we treat every agent and experiment guest as the attacker. [SECURITY.md](SECURITY.md#what-we-assume) explains the triage threat model, [the gravity threat model](SECURITY.md#gravity-machine), [how dr-hands protects you](SECURITY.md#how-dr-hands-protects-you), and [the risks we accept](SECURITY.md#risks-we-accept). Two design rules follow from it:
+Every report is hostile, and we treat every agent and experiment guest as the attacker. [SECURITY.md](SECURITY.md#what-we-assume) explains the triage threat model, [the gravity threat model](SECURITY.md#gravity-machine), [how dr-hands protects you](SECURITY.md#how-dr-hands-protects-you), and [the risks we accept](SECURITY.md#risks-we-accept). Three design rules follow from it:
 
-- **Enforce rules where a hostile guest cannot reach them.** A rule on the guest holds only until the agent gets root. So the rules that matter live outside it: cloud networks, managed access policy, and the OpenRouter workspace.
-- **Trust intake code, never intake content.** A report source runs as you and must be trusted. Every snapshot it produces remains hostile and gets the same scan and isolation, whatever its origin.
-- **Teardown proves itself.** Removing a run checks that nothing survived, and fails loudly when something did.
+- **Enforce rules where a hostile guest cannot reach them.** A rule on the guest holds only until the agent gets root. So the rules that matter live outside it: provisioner-declared network and management controls, infrastructure access policy, and the OpenRouter workspace.
+- **Trust local extensions deliberately, never their claims alone.** Report sources and provisioners run as you and must be trusted. Every snapshot remains hostile, and provisioner state cannot prove its own cleanup.
+- **Teardown proves itself.** Removing a run checks through an external read-only view that nothing survived, and fails loudly when something did.
 
 When we accept a new risk, we add it to SECURITY.md.
 

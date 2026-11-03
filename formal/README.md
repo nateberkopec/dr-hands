@@ -29,17 +29,17 @@ Neither model fixes an attacker framework or target implementation. ARTEX and Ru
 
 ### Vocabulary
 
-The model contains two chambers, each with one abstract attacker-framework role and one abstract target role. It distinguishes the operator, workstation, AWS control plane, hypervisor, AWS network guard, EC2 Instance Connect, OpenRouter, and the public Internet. Network reachability and capability possession are separate relations.
+The model contains two chambers, each with one abstract attacker-framework role and one abstract target role. It distinguishes the operator, workstation, infrastructure control plane, compute boundary, network guard, management ingress, OpenRouter, and the public Internet. Network reachability and capability possession are separate relations.
 
 `IntactArchitecture` fixes the intended paths:
 
 ```text
-workstation -> Instance Connect -> attacker
+workstation -> management ingress -> attacker
 attacker <-> same-chamber target
-attacker -> AWS network guard -> OpenRouter
+attacker -> network guard -> OpenRouter
 ```
 
-There is no guest edge to the workstation, AWS control plane, Internet, another chamber, or a triage box. Inference capabilities belong to one chamber. Cloud and OpenRouter administration belong only to the operator.
+There is no guest edge to the workstation, infrastructure control plane, Internet, another chamber, or a triage box. Inference capabilities belong to one chamber. Infrastructure and OpenRouter administration belong only to the operator. A provisioner must map its declared trust roles to these principals; the AWS mapping is one implementation.
 
 `effectiveNetwork` adds the consequences of compromising a trusted boundary. This lets `EscapeRequiresTrustedFailure` state the intended cut-set property: the declared architecture has no escape unless a named trusted component is broken.
 
@@ -139,7 +139,9 @@ These properties depend on SECURITY.md assumption A9. If the controller never re
 
 `GravityLifecycle.cfg` checks one run and generation with one abstract resource and authority, a two-tick lease, and time through tick four. `GravityGeneration.cfg` checks the same run across two generations with rejection, retry, and delayed completion. `GravityCrash.cfg` checks one abstract resource and authority with rejection, retry, and controller crashes through tick three. `GravityIsolation.cfg` checks two runs with one abstract resource and authority through tick two. The three mutation configs use the smallest scopes that can exhibit their unsafe behavior.
 
-The model deliberately collapses provider-specific resources. Implementation scenarios must enumerate instances, volumes, interfaces, endpoints, firewall resources, and keys.
+The model deliberately collapses provider-specific resources. Each provisioner's real-service scenarios must enumerate its compute, storage, network, management, and authority resources.
+
+The provisioner protocol does not weaken the models. P4 and P7 map to TLA+'s run- and generation-scoped operations, retries, liveness, and negative controls. P5 maps to external observation and removal invariants. P6 maps each provisioner's declared trust roles to Alloy's infrastructure control, compute boundary, network guard, and management ingress. P1–P3 and P8 are protocol and implementation claims checked by `features/provisioners.feature`, not formal properties.
 
 ## Traceability
 
@@ -156,6 +158,6 @@ The model deliberately collapses provider-specific resources. Implementation sce
 
 ## What these checks do not prove
 
-They do not prove that AWS or OpenRouter satisfy A4 and A5, that cryptography holds, that the finite scope generalizes, that the model contains every relevant capability, or that future infrastructure code implements this design. They also do not assign a CVSS score to an unknown vulnerability.
+They do not prove that a provisioner, AWS, or OpenRouter satisfies A4 and A5, that cryptography holds, that the finite scope generalizes, that the model contains every relevant capability, or that future infrastructure code implements this design. They also do not assign a CVSS score to an unknown vulnerability.
 
 Their purpose is narrower: make every trust assumption visible, find ordinary paths that avoid those assumptions, and reject lifecycle orderings that strand authority or declare cleanup early. Real-service feature scenarios close the model-to-implementation gap when the system is built.

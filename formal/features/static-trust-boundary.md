@@ -11,6 +11,7 @@ The Alloy model proves that useful attacker and target roles fit inside the name
 - `ST-5`: policy enforcement stays outside guests.
 - `ST-6`: every modeled escape requires a named trusted failure.
 - `ST-7`: five known-bad architectures remain satisfiable witnesses.
+- `ST-8`: provisioner-specific services map to four external infrastructure trust roles rather than adding principals.
 
 ## How to get to it (reviewer POV)
 
@@ -28,4 +29,4 @@ Preconditions: `mise run verify-formal-doctor` passes.
 
 ## Gotchas
 
-Alloy is bounded to two chambers. `TrustedSetIsNamed` limits modeled principals, not provider internals. A mutation witness proves model sensitivity only for that mutation. None of these checks proves Terraform implements the relation.
+Alloy is bounded to two chambers. `TrustedSetIsNamed` limits modeled principals, not provider internals. A mutation witness proves model sensitivity only for that mutation. None of these checks proves a provisioner implements the relation.

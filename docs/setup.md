@@ -12,9 +12,9 @@ gh auth login
 op signin
 ```
 
-## 2. AWS
+## 2. Provisioner
 
-dr-hands runs boxes in their own AWS member account. Its deploy key can manage EC2 in one region and nothing else. You never give dr-hands your root credentials.
+AWS is the bundled provisioner. It runs boxes in their own AWS member account. Its deploy key can manage dr-hands resources in one region and nothing else. You never give dr-hands your root credentials.
 
 Sign in as the root user of your AWS Organization's management account, then run the bootstrap in your own terminal:
 
@@ -23,7 +23,9 @@ aws login
 mise run bootstrap-aws --email you+dr-hands@example.com
 ```
 
-Add `--create-organization` if you don't have an Organization yet. The bootstrap saves the deploy key to 1Password as `Private/dr-hands-aws-deploy`; pass `--vault` to pick another vault.
+Add `--create-organization` if you don't have an Organization yet. The bootstrap saves the deploy key to 1Password as `Private/dr-hands-aws-deploy`; pass `--vault` to pick another vault. It also creates a read-only observer identity used to prove readiness and absence independently of Terraform state.
+
+To use a third-party provisioner instead, follow its credential setup, then configure its absolute executable as described in [configuration.md](configuration.md#provisioners). It must pass protocol conformance and its own real-service checks; the fixture suite alone is insufficient.
 
 ## 3. Tailscale
 
@@ -93,6 +95,7 @@ Point dr-hands at your broker and choose your languages in `mise.local.toml`:
 
 ```toml
 [env]
+DR_HANDS_PROVISIONER = "aws"
 AWS_REGION = "us-east-2"
 DR_HANDS_STACKS = "ruby node"
 DR_HANDS_BROKER_HOST = "broker.example.ts.net"
@@ -101,7 +104,7 @@ DR_HANDS_BROKER_SSH = "broker"
 DR_HANDS_BROKER_TOKEN_FILE = "~/dr-hands-broker/admin.env"
 ```
 
-[configuration.md](configuration.md) explains each setting.
+[configuration.md](configuration.md) explains each setting and how to select a custom provisioner.
 
 ## 6. The image
 

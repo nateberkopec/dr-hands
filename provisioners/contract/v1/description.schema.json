@@ -1,0 +1,40 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://dr-hands.example/provisioners/v1/description.schema.json",
+  "type": "object",
+  "required": ["protocolVersion", "name", "implementationVersion", "modes", "commands", "trustRoles"],
+  "additionalProperties": false,
+  "properties": {
+    "protocolVersion": {"const": 1},
+    "name": {"type": "string", "pattern": "^[a-z][a-z0-9-]*$"},
+    "implementationVersion": {"type": "string", "minLength": 1},
+    "modes": {
+      "type": "array",
+      "minItems": 1,
+      "uniqueItems": true,
+      "items": {"enum": ["box", "gravity"]}
+    },
+    "commands": {
+      "const": ["doctor", "image", "create", "inspect", "exec", "observe", "destroy", "verify-absent", "sweep"]
+    },
+    "trustRoles": {
+      "type": "object",
+      "required": ["controlPlane", "computeBoundary", "networkBoundary", "managementIngress"],
+      "additionalProperties": false,
+      "properties": {
+        "controlPlane": {"$ref": "#/$defs/names"},
+        "computeBoundary": {"$ref": "#/$defs/names"},
+        "networkBoundary": {"$ref": "#/$defs/names"},
+        "managementIngress": {"$ref": "#/$defs/names"}
+      }
+    }
+  },
+  "$defs": {
+    "names": {
+      "type": "array",
+      "minItems": 1,
+      "uniqueItems": true,
+      "items": {"type": "string", "minLength": 1}
+    }
+  }
+}

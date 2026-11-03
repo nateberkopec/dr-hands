@@ -3,8 +3,8 @@ module gravity
 abstract sig Principal {}
 abstract sig Trusted extends Principal {}
 
-one sig Operator, Workstation, AWSControl, Hypervisor, NetworkGuard,
-  InstanceConnect, OpenRouter extends Trusted {}
+one sig Operator, Workstation, InfrastructureControl, ComputeBoundary,
+  NetworkGuard, ManagementIngress, OpenRouter extends Trusted {}
 one sig Internet extends Principal {}
 
 sig Chamber {}
@@ -12,7 +12,7 @@ abstract sig Guest extends Principal { belongsTo: one Chamber }
 sig Attacker, Target extends Guest {}
 
 abstract sig Capability { scopedTo: lone Chamber }
-one sig CloudAdmin, OpenRouterAdmin extends Capability {}
+one sig InfrastructureAdmin, OpenRouterAdmin extends Capability {}
 sig Inference extends Capability {}
 
 one sig Design {
@@ -27,15 +27,15 @@ fun sameChamber: Guest -> Guest {
 }
 
 fun declaredNetwork: Principal -> Principal {
-  Workstation -> InstanceConnect
-  + InstanceConnect -> Attacker
+  Workstation -> ManagementIngress
+  + ManagementIngress -> Attacker
   + sameChamber
   + Attacker -> NetworkGuard
   + NetworkGuard -> OpenRouter
 }
 
 fun declaredCapabilities: Principal -> Capability {
-  Operator -> (CloudAdmin + OpenRouterAdmin)
+  Operator -> (InfrastructureAdmin + OpenRouterAdmin)
   + { attacker: Attacker, inference: Inference |
       inference.scopedTo = attacker.belongsTo }
 }
@@ -45,7 +45,7 @@ pred CommonShape {
     one chamber.~belongsTo & Attacker
     and one chamber.~belongsTo & Target
     and one inference: Inference | inference.scopedTo = chamber
-  no CloudAdmin.scopedTo
+  no InfrastructureAdmin.scopedTo
   no OpenRouterAdmin.scopedTo
 }
 
@@ -53,8 +53,8 @@ pred SafeArchitecture {
   CommonShape
   Design.net = declaredNetwork
   Design.holds = declaredCapabilities
-  Design.enforcers = AWSControl + Hypervisor + NetworkGuard
-    + InstanceConnect + OpenRouter
+  Design.enforcers = InfrastructureControl + ComputeBoundary + NetworkGuard
+    + ManagementIngress + OpenRouter
 }
 
 pred IntactArchitecture {
@@ -66,8 +66,8 @@ fun effectiveNetwork: Principal -> Principal {
   { from, to: Principal |
     from -> to in Design.net
     or (NetworkGuard in Design.broken and from in Guest and to = Internet)
-    or (InstanceConnect in Design.broken and from in Guest and to = Workstation)
-    or (Hypervisor in Design.broken and from in Guest and to = AWSControl) }
+    or (ManagementIngress in Design.broken and from in Guest and to = Workstation)
+    or (ComputeBoundary in Design.broken and from in Guest and to = InfrastructureControl) }
 }
 
 fun reachable[from: Principal]: set Principal {
@@ -75,14 +75,14 @@ fun reachable[from: Principal]: set Principal {
 }
 
 fun outside[guest: Guest]: set Principal {
-  Internet + Workstation + Operator + AWSControl + Hypervisor
-  + InstanceConnect
+  Internet + Workstation + Operator + InfrastructureControl + ComputeBoundary
+  + ManagementIngress
   + { other: Guest | other.belongsTo != guest.belongsTo }
 }
 
 pred Escapes[guest: Guest] {
   some reachable[guest] & outside[guest]
-  or some Design.holds[guest] & (CloudAdmin + OpenRouterAdmin)
+  or some Design.holds[guest] & (InfrastructureAdmin + OpenRouterAdmin)
   or some capability: Design.holds[guest] |
     some capability.scopedTo and capability.scopedTo != guest.belongsTo
 }
@@ -111,7 +111,7 @@ assert ManagementIsInboundOnly {
 
 assert NoValuableGuestCapability {
   IntactArchitecture implies
-    no Guest.(Design.holds) & (CloudAdmin + OpenRouterAdmin)
+    no Guest.(Design.holds) & (InfrastructureAdmin + OpenRouterAdmin)
 }
 
 assert InferenceIsRunScoped {
@@ -137,8 +137,8 @@ assert EscapeRequiresTrustedFailure {
 }
 
 assert TrustedSetIsNamed {
-  Trusted = Operator + Workstation + AWSControl + Hypervisor
-    + NetworkGuard + InstanceConnect + OpenRouter
+  Trusted = Operator + Workstation + InfrastructureControl + ComputeBoundary
+    + NetworkGuard + ManagementIngress + OpenRouter
 }
 
 pred GeneralInternetMutation {
@@ -174,8 +174,8 @@ pred GuestEnforcerMutation {
   no Design.broken
   Design.net = declaredNetwork
   Design.holds = declaredCapabilities
-  Design.enforcers = AWSControl + Hypervisor + NetworkGuard
-    + InstanceConnect + OpenRouter + Attacker
+  Design.enforcers = InfrastructureControl + ComputeBoundary + NetworkGuard
+    + ManagementIngress + OpenRouter + Attacker
 }
 
 pred OutboundManagementMutation {

@@ -1,0 +1,3 @@
+# Provisioners are executables, not Terraform modules
+
+Provisioners use a versioned local executable protocol while Terraform remains private to the bundled AWS implementation. A Terraform module contract would make initial creation easy, but it would couple core orchestration to Terraform state and still need provider-specific code for images, management transport, external observation, lost-state cleanup, and sweeping. The executable boundary keeps requests and lifecycle policy provider-neutral, lets implementations choose their infrastructure tool, and makes independent observation a required part of the same contract.

@@ -8,7 +8,9 @@ After you change a stack or a setting marked below, run `mise run image`.
 
 | Setting | Used for | Rebuild image? |
 |---|---|---|
-| `AWS_REGION` | Where boxes and images live | Yes |
+| `DR_HANDS_PROVISIONER` | Provisioner name; defaults to `aws` | Yes |
+| `DR_HANDS_PROVISIONER_NAME` | Absolute executable for custom provisioner `NAME`; uppercase and replace `-` with `_` | Yes |
+| `AWS_REGION` | Where the AWS provisioner keeps Runs and images | Yes |
 | `DR_HANDS_STACKS` | Languages on the box, separated by spaces | Yes |
 | `DR_HANDS_BROKER_HOST` | The broker's TLS name on your tailnet, such as `broker.example.ts.net` | Yes |
 | `DR_HANDS_BROKER_IP` | The broker's tailnet IPv4 address | Yes |
@@ -31,7 +33,7 @@ TAILSCALE_OAUTH_CLIENT_ID = { provider = "op", value = "op://Private/dr-hands-ta
 TAILSCALE_OAUTH_CLIENT_SECRET = { provider = "op", value = "op://Private/dr-hands-tailscale/credential" }
 ```
 
-Any other fnox provider works too.
+Any other fnox provider works too. A custom provisioner may name additional infrastructure secrets. It is trusted local code and receives only the environment fnox and the operator give it.
 
 ## Report sources
 
@@ -60,6 +62,30 @@ The executable writes `report.json` and `report.md` into the empty directory. `r
 The source's name and stable ID identify the report. IDs from different sources do not collide. `refresh RUN` invokes the same source and locator again, and refuses a changed ID or repository.
 
 A source executable runs as you on your laptop. It can read your files and credentials, so install only code you trust. Its fetched report is still hostile. dr-hands captures source output instead of printing it, scans the normalized snapshot, and never copies source credentials into a box or local run state.
+
+## Provisioners
+
+The bundled AWS provisioner is the default:
+
+```toml
+[env]
+DR_HANDS_PROVISIONER = "aws"
+AWS_REGION = "us-east-2"
+```
+
+To use a third-party provisioner, select its name and map that name to an absolute executable:
+
+```toml
+[env]
+DR_HANDS_PROVISIONER = "example"
+DR_HANDS_PROVISIONER_EXAMPLE = "/absolute/path/to/dr-hands-provisioner-example"
+```
+
+dr-hands records the provisioner name, absolute path, protocol and implementation versions, and executable digest in each Run. Changing current configuration does not migrate an existing Run; it continues to use its recorded executable path. An upgraded executable must keep a compatible protocol version, reruns `doctor`, and leaves its new version and digest in evidence.
+
+A provisioner is trusted local code with infrastructure credentials. It cannot be sandboxed by dr-hands. Its outputs are nevertheless schema-checked, scoped to a Run generation, and compared with an external read-only observation before readiness or removal. [The provisioner protocol](provisioners.md) defines every command and result.
+
+Only AWS is bundled and tested against real infrastructure. A fixture used by protocol scenarios is not a usable provisioner.
 
 ## Stacks
 
