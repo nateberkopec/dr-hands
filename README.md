@@ -1,6 +1,6 @@
 # dr-hands
 
-This repository contains specifications and documentation only. The implementation has been archived and removed. Commands and setup instructions below and in the other documents describe the archived design, not runnable software in this checkout. See [History and recovery](docs/history.md) to read or restore the archived versions.
+This repository contains specifications and documentation only. The implementation has been archived and removed. Commands and setup instructions below and in the other documents describe the archived design, not runnable software in this checkout.
 
 Triage private GitHub security reports with coding agents, on throwaway cloud machines that hold nothing worth stealing.
 
