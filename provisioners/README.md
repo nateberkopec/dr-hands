@@ -1,37 +1,31 @@
 # Provisioners
 
-A provisioner implements a Run's infrastructure and externally enforced security boundary. Users select role images and declare inputs; they do not supply lifecycle code, startup-command overrides, or infrastructure credentials inside workloads.
+A provisioner maps an approved plan to infrastructure and an externally enforced boundary. Its backend manages resource operations; it does not define the workflow or its allowed data flows. The controller, provisioner, backend, and dependencies are trusted code.
 
-## Selection and configuration
+## Selection
 
-`config.toml` selects `provisioner = "aws"` or another explicitly installed integration. Settings belong under `provisioners.<name>`, with fnox aliases under `provisioners.<name>.secrets`. A report or workload configuration cannot supply a local executable path.
+config.toml selects the provisioner and settings under provisioners.<name>. Required credentials are fnox aliases, not guest inputs. A trusted workflow selects typed operations, not infrastructure credential values. Reports and images cannot select local executables or integrations.
 
-Provisioner code operates with operator authority and must be installed deliberately. This is distinct from guest role code, which is assumed malicious, and report data, which is never executed locally. Using another provider requires reviewing its named security boundaries and supported policies; interface compatibility alone does not establish containment.
+Another integration requires deliberate installation and review of its named boundaries and supported policies. Interface compatibility does not establish containment. Refuse unsupported requirements rather than falling back to a guest firewall or another provider.
 
 ## Responsibilities
 
-A provisioner must:
+- Check configuration and selected capabilities without mutation during doctor.
+- Resolve immutable image references and compile declared relationships into externally enforced policy.
+- Refuse private images/inputs combined with public-web access; classify the entire run, not isolated roles.
+- Enforce policy before any image boots. Deny workstation, unrelated private-network, metadata/control-plane, and other-run access.
+- Provision owned resources with stable Run ID and generation; reject unrelated resource adoption.
+- Deliver only declared inputs at fixed destinations and grant only bounded run authority at activation.
+- Implement idempotent operations and recovery from partially completed mutations.
+- Register cleanup for every runtime resource and capability, including storage, interfaces, firewall resources, and inference authority.
+- Enumerate owned resources independently of backend state and verify external absence.
 
-- validate its configuration and declare the policies it can enforce;
-- check selected service capabilities without mutation during doctor;
-- resolve and verify immutable image references for fixed roles;
-- enforce an inventory of all image/input sensitivities and destinations, defaulting unclassified contents to private;
-- reject any private image/input combined with public-web access across the run;
-- create isolated role resources and enforce permitted paths outside the guests;
-- deny workstation, unrelated private-network, other-run, metadata, and management access;
-- establish operator-initiated management and verify guest identity;
-- inventory every run-owned resource and capability by immutable run identity and generation;
-- remove partial or complete runs idempotently and observe external absence;
-- enumerate and sweep run-owned resources using provider state, not just local directories.
-
-The same tool-owned lifecycle serves private analysis, public browsing, and gravity. If a provider cannot enforce public-web restrictions or gravity's tighter policy, it must reject that workflow. A guest firewall is not a fallback for missing external enforcement.
-
-Inference authority belongs to the selected inference service. The controller coordinates its revocation with provider cleanup; destroying compute alone does not mean a run is removed.
+The controller coordinates inference revocation with infrastructure deletion. Request revocation first; attempt deletion even if revocation fails, preserving failures. Compute deletion alone does not establish removal.
 
 ## State and failures
 
-Each run records its provider, non-secret configuration snapshot, resource identities, and generation. Changing the selected provider affects new runs only. Cleanup uses the original provider and inventory and fails visibly if required credentials or external observations are unavailable.
+Keep an independent ownership inventory with original provider, configuration references, Run ID, generation, deadline, and pending operations. Do not store reports, credentials, or guest outputs in backend inputs, outputs, state, or traces. Changing config affects new runs only.
 
-Retries must not attach stale resources or revive expired authority. Removal checks for every guest-writable runtime surface, including storage, interfaces, and policy resources, not only machines. Explicitly exported evidence is outside the runtime inventory and remains hostile.
+Serialize mutations for each run. Reconcile external state before replay and reject stale responses. Missing backend state is not proof of absence. Backend delete success does not authorize discarding unresolved inventory. Removal needs both confirmed revocation and observed resource absence.
 
-A provisioner owns its internal infrastructure tool and state layout. The core contract does not require Terraform or AWS-specific identifiers.
+The [backend evaluation](../workflows/backend.md) identifies Alchemy as the selected backend, used through its library API, with local state and generated resource cleanup. Policy validation, safe dry-run behavior, external expiry, and independent removal verification remain controller/provisioner obligations. A local cleanup handler cannot cover permanent workstation loss.

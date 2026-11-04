@@ -1,26 +1,18 @@
-# Formal proof map
+# Formal model map
 
-This directory describes verification of the restricted gravity models. Read `formal/README.md` for the scope and limitations before using these guides. These checks do not prove public browsing, sensitivity classification, or the lethal-trifecta policy.
+These guides describe the restricted reference-gravity models and their evidence requirements. Read [the model guide](../README.md) for scope and limitations. The models do not establish public-browsing safety, sensitivity classification, or the lethal-trifecta policy.
 
-## Baseline preconditions
+No current task runs the models. The earlier harness and its integrity checks are preserved at [archive/design-stack-before-spec-only](https://github.com/nateberkopec/dr-hands/tree/archive/design-stack-before-spec-only/formal).
 
-- Run from a clean dr-hands checkout with mise-installed Java, Fish, and Ruby.
-- Run `mise run verify-formal-doctor` before investigating a surprising result.
-- Treat `tmp/formal/tools/` as a checksum-verified cache, not evidence.
-- Give concurrent runs different `DR_HANDS_VERIFY_RUN` values.
-- Never delete an earlier evidence directory to make a later run pass.
+## Evidence requirements
 
-## Proof conventions
+- Require a useful architecture witness, not just an absence of counterexamples.
+- Require a concrete witness or failing trace for each unsafe mutation.
+- Require coverage of every critical lifecycle action.
+- Read literal model-checker results, not just exit status.
+- Preserve raw output, model/tool hashes, and the checked revision with each result.
 
-- A useful architecture witness must exist; absence of counterexamples alone is insufficient.
-- Every unsafe mutation must produce a concrete witness or failing TLC trace.
-- Every critical lifecycle action must have nonzero TLC coverage.
-- The harness reads model-checker output back and asserts literal results.
-- Evidence includes the git revision, raw logs, Alloy receipt, summary, and artifact hashes.
-- Scratch state is removed after a run; evidence is not.
+## Models
 
-## Features
-
-- [Static trust boundary](static-trust-boundary.md) covers principals, paths, capability scope, useful connectivity, and Alloy mutations.
-- [Lifecycle](lifecycle.md) covers provisioning, retries, delayed completions, generations, expiry, revocation, teardown, crashes, and run isolation.
-- [Harness integrity](harness-integrity.md) covers pinned tools, doctor checks, negative controls, read-back, evidence, and cleanup.
+- [Static trust boundary](static-trust-boundary.md): principals, paths, scoped authority, useful connectivity, and Alloy mutations.
+- [Lifecycle](lifecycle.md): provisioning, delayed operations, generations, expiry, revocation, removal, crashes, and run isolation.

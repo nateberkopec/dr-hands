@@ -1,0 +1,17 @@
+{
+  "name": "dr-hands",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "lint": "bun node_modules/typescript/bin/tsc --noEmit && bun scripts/check-contracts.ts",
+    "test": "bun tests/cli.system.ts"
+  },
+  "dependencies": {
+    "ajv": "8.17.1",
+    "jsonc-parser": "3.3.1"
+  },
+  "devDependencies": {
+    "@types/bun": "1.4.3",
+    "typescript": "5.9.3"
+  }
+}

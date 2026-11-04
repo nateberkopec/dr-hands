@@ -1,0 +1,14 @@
+[tools]
+bun = "1.4.3"
+
+[tasks.setup]
+description = "Install the locked local validation toolchain"
+run = "bun install --frozen-lockfile --ignore-scripts"
+
+[tasks.lint]
+description = "Check TypeScript and specification links/bounds"
+run = "bun run lint"
+
+[tasks.test]
+description = "Exercise the CLI and hostile report intake without cloud access"
+run = "bun run test"

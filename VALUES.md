@@ -1,40 +1,84 @@
 # Values
 
-These are the rules we design dr-hands by. The specifications describe the behavior. This file says why.
+These values explain why dr-hands works the way it does. The specifications say what it does. Every change must follow every rule here.
 
-## Problems we solve
+## The problem we solve
 
-Investigating a security report can mean following hostile links, reading malicious instructions, and running attacker-supplied code. Doing that on an operator's workstation puts their credentials, network, and other work at risk. Testing an attacker framework against a live target can infect both the agent and the target.
+Checking a security report can mean opening hostile links, reading text written to trick you, and running an attacker's code. Doing that on your workstation puts your credentials, your network, and your other work at risk. Testing an attack tool against a live target can harm both the agent and the target.
 
-dr-hands gives that work a disposable boundary. The operator can investigate a report and collect evidence without giving the agent access to their workstation or production systems. It cannot protect the operator's judgment from manipulation by what they read.
+dr-hands moves that work into a disposable run. You can investigate a report and collect evidence without giving the agent access to your workstation or production systems. dr-hands cannot protect your judgment from what you read.
 
-## Security first
+## Assume everything in a run is hostile
 
-Every report is infected. We assume the agent has root from the start and the target is infected too, because the agent may infect it at any time. [SECURITY.md](SECURITY.md#what-we-assume) explains the triage threat model, [the gravity threat model](SECURITY.md#gravity-machine), [how dr-hands protects you](SECURITY.md#how-dr-hands-protects-you), and [the risks we accept](SECURITY.md#risks-we-accept). The design rules follow from it:
+- Every report is hostile, whatever its source.
+- Every guest has root from the moment it boots. Assume the target is compromised from the start.
+- Every image, input, and output is hostile, including public ones. Public means "allowed to be disclosed," not "safe."
+- Schema validation and image pinning check structure and identity. They do not prove safety.
+- [Security](SECURITY.md) links the threat model, data-flow policy, lifecycle, and accepted risks. The [gravity workflow](workflows/gravity.ts) states its reference assumptions.
 
-- **Enforce rules outside the guest.** The agent already has root. Guest configuration is not a security boundary; the rules that matter live outside it: cloud networks, managed access policy, and the OpenRouter workspace.
-- **Treat every input as infected.** Report intake accepts structured text, not executable source plugins. Schema validation and image pinning do not certify safety.
-- **Separate public software from private inputs.** Inventory image layers, reports, source, and derived data. Missing sensitivity means private. Refuse private data plus public-web access; do not offer an override. Disclosure to the configured inference service and its serving providers is accepted and shown before approval.
-- **Destroy every infected runtime surface.** Draw a clear boundary around all guest-writable resources and run authority. Removal destroys those resources, revokes authority, and confirms absence. Explicitly exported evidence may survive as opaque, still-hostile files. Public-web requests cannot be undone by teardown.
+## Enforce rules outside the guest
 
-When we accept a new risk, we add it to SECURITY.md.
+- Guest root can change anything inside the guest, so guest settings are never a security boundary.
+- Put the rules that matter in services outside the guest: cloud networks, cloud access policy, and the inference service's workspace limits.
+- If a provider cannot enforce a required rule, refuse the run. Never fall back to a guest firewall.
 
-## Minimize the trusted boundary
+## Keep private data away from the public web
 
-The ambition is that escaping dr-hands requires a CVSS 9+ zero-day in battle-tested upstream software or services, such as a provider hypervisor or OpenRouter. This is not a promise about the score or novelty of an unknown exploit. The concrete requirement is that every escape path must cross a named upstream security boundary, and we minimize how many boundaries we assume correct.
+- Record the sensitivity of every image layer, input, and output. Missing sensitivity means private.
+- Refuse any run that combines private data with public-web access. No approval or setting overrides this.
+- Use separate runs for public browsing and private analysis. Never move private data into a public-browsing run.
+- The configured inference service and its serving providers can read anything the run can read. Show them as recipients before approval. Zero retention limits storage; it does not prevent disclosure.
 
-Managed services enforce the rules; we do not add a persistent custom control plane. Experiment-local servers and databases are hostile workloads that die with their machines. Misconfiguration and chains of smaller bugs still matter; provider reputation does not prove a deployment secure.
+## Remove everything a guest could touch
+
+- Every runtime resource and run capability belongs to exactly one run and has a registered cleanup step. Generate cleanup from that ownership record, not from a handwritten script.
+- Never keep a runtime resource after removal.
+- Request revocation first, then delete resources. Attempt deletion even if revocation fails, and keep all unresolved failures visible. Confirm revocation and each resource's absence independently of the backend. A successful delete call is not proof.
+- A run's deadline is fixed at provisioning. Nothing extends it. Expiry must work even when the workstation is off.
+- Exported evidence may survive as opaque files. It stays hostile.
+- Removal cannot recall public-web requests or data already sent to the inference service.
+
+## Trust as little as possible
+
+Our goal is that escaping dr-hands requires a critical (CVSS 9+) zero-day in a mature upstream service, such as a cloud hypervisor or the inference service. This is a goal, not a promise about any unknown exploit. The firm rule is that every escape path must cross a named upstream security boundary. Keep that list of boundaries short.
+
+- Let managed services enforce the rules. Do not run a long-lived custom control plane.
+- Servers and databases inside a run are hostile workloads. They are destroyed with the run.
+- Misconfiguration and chains of small bugs still matter. A provider's reputation does not prove a deployment secure.
+
+## Separate the operator from the workflow
+
+- The operator runs the dr-hands CLI. Workflows never call the CLI.
+- A workflow is trusted TypeScript. It builds a typed plan through a constrained library API. Users may write their own workflows.
+- The workflow defines roles, inputs, permitted connections, outputs, and cleanup obligations. Config supplies parameter values only. It never repeats the workflow's structure.
+- Derive permissions from the relationships the plan declares, not from what the agent does.
+- Images define what guests do. dr-hands adds no startup hooks or lifecycle scripts inside guests.
+- Reports and guest output can never choose workflow code, change the plan, or widen permissions.
+
+## Build on one backend: Alchemy
+
+- Alchemy is the infrastructure backend. dr-hands calls it as a library, behind the constrained workflow API.
+- Alchemy's state and delete results are not the ownership record. dr-hands keeps its own inventory and checks absence itself.
+
+## Run locally and resume locally
+
+- The controller runs on the operator's workstation. It needs no daemon, scheduler, or external workflow engine.
+- After a crash, resume from saved state. Check real resources before repeating any step.
 
 ## Run anywhere
 
-dr-hands targets macOS and Linux, from any shell and any terminal. Obtaining reports is separate from running them; the core does not require a GitHub login or a particular report source.
+dr-hands targets macOS and Linux, from any shell and terminal. One mise-pinned Bun toolchain runs the CLI and its checks. Getting reports is separate from running them. The core needs no GitHub login and no particular report source.
 
-## Everything is code
+## Define everything as code
 
-Cloud resources come from code, not clicks. A one-time manual step is fine when the docs spell it out.
+Cloud resources come from code, not console clicks. A one-time manual step is acceptable only when the docs spell it out.
 
-## Keep you out of the repository
+## Keep personal data out of the repository
 
-Personal settings live in ignored `config.toml`, beside tracked `config.example.toml`. Secrets live in your own secret store, through fnox; settings name aliases, not secret values.
+- Personal settings live in the ignored `config.toml`. The tracked `config.example.toml` shows the format.
+- Secrets live in your own secret store, reached through fnox. Settings name secret aliases, never secret values.
+- Report sources connect by producing the documented report format. dr-hands never runs report-source plugins.
 
-Customize experiments by building and selecting immutable images and declaring data. dr-hands owns role interfaces and lifecycle order; no startup-command overrides, pre-agent hooks, or user lifecycle steps are accepted. Report sources integrate by producing the documented text format, not by running local plugins.
+## Record every accepted risk
+
+When we accept a new risk, add it to [accepted risks](security/risks.md).

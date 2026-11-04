@@ -1,0 +1,4 @@
+Usage: dr-hands init
+Copy config.example.toml and fnox.example.toml to adjacent personal files.
+Preflight both destinations; refuse to overwrite either. No login, secret
+resolution, tool installation, network access, or provisioning.

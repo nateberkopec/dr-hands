@@ -1,0 +1,8 @@
+Usage: dr-hands dry-run WORKFLOW
+Construct and validate the typed plan; show resources, inputs, image identities,
+sensitivity, recipients, derived permissions, cleanup obligations, budget, and
+expiry. Resolve required credentials and make read-only service calls as needed.
+Do not provision, mint run authority, bootstrap remote state, or run guest code.
+Plan construction is trusted code, not a sandbox. Constrained authoring forbids
+arbitrary side effects; an infrastructure engine's no-apply flag is insufficient.
+A preview is not approval and does not establish that a cloud policy works.

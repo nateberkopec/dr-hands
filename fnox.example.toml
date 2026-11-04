@@ -11,7 +11,7 @@ type = "1password"
 
 [secrets]
 # Map only the aliases required by selected infrastructure and inference.
-# Exporters are outside dr-hands and have no aliases here. check verifies alias
+# Exporters are outside dr-hands and have no aliases here. lint verifies alias
 # declarations without resolving values; doctor performs non-mutating probes;
 # run resolves the same selected aliases automatically, without fnox exec.
 aws_access_key_id = { provider = "op", value = "op://Private/dr-hands-aws/username" }

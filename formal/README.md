@@ -1,22 +1,14 @@
 # Formal verification
 
-The Alloy network model covers the restricted reference gravity workflow only; it does not model public browsing, image/input classification, or the lethal-trifecta policy. The lifecycle model is an abstract reference for shared Run behavior, not proof of the Dagu integration, fixed role interfaces, or configuration contracts.
+The Alloy network model covers the restricted reference gravity workflow only; it does not model public browsing, image/input classification, or the lethal-trifecta policy. The lifecycle model is an abstract reference for shared Run behavior, not proof of typed-plan compilation, backend integration, or configuration contracts.
 
-This is the deepest layer of the gravity acceptance pyramid. Start at [GRAVITY.md](../GRAVITY.md), then read the [threat model](../SECURITY.md#gravity-machine) and [behavioral acceptance](https://github.com/nateberkopec/dr-hands/blob/archive/design-stack-before-spec-only/features/gravity.feature) before reading the models.
+This is the deepest layer of the gravity acceptance pyramid. Start at the numbered claims and assumptions in [the gravity workflow](../workflows/gravity.ts), then read the [threat model](../security/threat-model.md) and [behavioral acceptance](https://github.com/nateberkopec/dr-hands/blob/archive/design-stack-before-spec-only/features/gravity.feature) before reading the models.
 
 The [proof map](features/README.md) is the maintained guide to every formal feature and its evidence.
 
-## Verification protocol
+## Verification
 
-**Doctor:** `mise run verify-formal-doctor` checks Java, Fish, Ruby, model files, and any cached tool checksums without creating evidence.
-
-**Drive:** `mise run verify-formal` runs the harness self-test, Alloy, three passing TLC configurations, and three expected-failing TLC mutations. Set `DR_HANDS_VERIFY_RUN=NAME` for a stable evidence name.
-
-**Observe:** the harness reads `receipt.json` and TLC logs back, requires the exact Alloy command set, inspects key mutation edges, requires nonzero lifecycle action coverage, and checks each TLA+ mutation's literal violation. Exit status alone is not proof.
-
-**Evidence:** each run writes a new `tmp/verify/formal/NAME/` containing raw logs, the Alloy receipt, the git revision, artifact hashes, `summary.json`, and `SUMMARY.md`. A second run cannot overwrite it.
-
-**Cleanup:** model-checker state directories are scratch and disappear when the process exits. Tool caches and every evidence directory remain. Neither is committed.
+No task in this revision runs these models. The earlier verification harness is preserved at [archive/design-stack-before-spec-only](https://github.com/nateberkopec/dr-hands/tree/archive/design-stack-before-spec-only/formal). Its dependencies and evidence apply to that archived revision, not this checkout.
 
 ## What is modeled
 
@@ -71,11 +63,11 @@ The same model requires witnesses for five unsafe mutations:
 - a guest added to the enforcement set;
 - outbound management access to the workstation.
 
-The task fails if an intended check finds a counterexample or if a known-bad mutation no longer has one. This tests the model's sensitivity as well as its preferred design.
+A verifier must fail if an intended check finds a counterexample or if a known-bad mutation no longer has one. This tests the model's sensitivity as well as its preferred design.
 
 ### Bounds
 
-All Alloy commands use exactly two chambers, two attackers, two targets, and two inference capabilities. Singleton trusted principals are exact by declaration. Alloy proves the assertions only within this scope. Two chambers are enough to expose shared authority and cross-run edges, but not every larger topology error.
+All Alloy commands use exactly two chambers, two attackers, two targets, and two inference capabilities. Singleton trusted principals are exact by declaration. Alloy checks the assertions only within this scope. Two chambers are enough to expose shared authority and cross-run edges, but not every larger topology error.
 
 ## TLA+: lifecycle
 
@@ -131,7 +123,7 @@ With weak or strong fairness for time, revocation, provider deletion, observatio
 - failed provisioning eventually reaches `Removed`;
 - a requested deletion eventually makes the resource absent.
 
-These properties depend on SECURITY.md assumption A9. If the controller never returns or a provider never completes an accepted operation, full deletion cannot be guaranteed. Deadline-based loss of authority and stale-generation rejection remain safety properties and do not use A9.
+These properties depend on assumption A9 in workflows/gravity.ts. If the controller never returns or a provider never completes an accepted operation, full deletion cannot be guaranteed. Deadline-based loss of authority and stale-generation rejection remain safety properties and do not use A9.
 
 ### Negative controls
 
@@ -154,7 +146,7 @@ The model deliberately collapses provider-specific resources. Implementation sce
 | G5 nothing valuable | I1 | `NoValuableGuestCapability` | authority classes only | credential and immutable-image scenarios |
 | G6 inert output | I14 | outside the model | `EvidenceIsRunScoped`, `EvidenceMonotonic` | status and opaque-result scenarios |
 | G7 expiry first | I8, I9 | capability scope | generation-tagged operations, `NoStaleAttachment`, expiry and revocation properties | absent-controller and stale-operation scenarios |
-| G8 proven teardown | I10–I13 | cross-chamber capability and path checks | run-tagged operations, removal safety, liveness, `RunIsolation`, and wrong-run mutation | removal, partial failure, sweep, and observation scenarios |
+| G8 verified removal | I10–I13 | cross-chamber capability and path checks | run-tagged operations, removal safety, liveness, `RunIsolation`, and wrong-run mutation | removal, partial failure, sweep, and observation scenarios |
 
 ## What these checks do not prove
 

@@ -2,46 +2,41 @@
 
 This repository is a specification, not an implementation.
 
-Investigate hostile reports and exercise attacker frameworks against disposable targets without putting your workstation inside the experiment.
+Investigate hostile reports and exercise attacker frameworks against disposable targets without putting your workstation inside the run.
 
-## Images, data, and a fixed boundary
+## Operators use the CLI; workflows use library APIs
 
-Users bring immutable images and declared inputs, not lifecycle code. Images implement fixed role interfaces; dr-hands owns provisioning, input delivery, role startup, observation, and removal. No local setup hooks, startup-command overrides, pre-agent scripts, or custom lifecycle steps are accepted.
+The operator asks dr-hands to lint, diagnose, preview, provision, or run a selected workflow. A trusted workflow constructs a typed plan; it never calls dr-hands as a subprocess. Images own guest processes. Reports and guest output cannot select trusted code or widen permissions.
 
-An inventory distinguishes public software images from potentially sensitive images, reports, and application source. Every image layer and input is classified; missing sensitivity means private. Public does not mean trusted. We assume guest root and infected targets, so the inventory describes everything accessible inside the boundary, not just the agent's initial process.
+We supply [issue triage](workflows/triage.ts) and [gravity](workflows/gravity.ts). Operators may author workflows through the same [typed contract](workflows/contract.ts). [The workflow contract](workflows/README.md) defines ownership, generated cleanup, preparation, and recovery. [The backend evaluation](workflows/backend.md) records Alchemy's selection and what it does not prove.
 
-## Avoid the lethal trifecta
+The CLI files are executable documentation: operational actions exit 3 without doing work. **Report linting works locally.** The TypeScript workflow descriptions are checked as specification data; they do not execute investigations or enforce cloud policy.
 
-Before provisioning, show whether the run has private data, hostile content, and external communication. Hostile content is always assumed. A run with private images or inputs cannot have public-web access, and there is no override.
+## Keep private data away from public browsing
 
-- **Private analysis:** private reports or source, hostile content, and access only to the configured inference service.
-- **Public browsing:** explicitly public images and inputs, hostile content, and public HTTP(S). Public requests and disclosures cannot be undone by teardown.
-- **Gravity:** an attacker and disposable target, restricted role connections, and bounded inference. ARTEX and RubyGems.org are reference images, not separate lifecycle engines.
+Inventory image layers, reports, application source, and outputs. Missing sensitivity means private. Public does not mean safe: assume guest root and compromised targets in every run.
 
-Use separate public browsing and private analysis runs, not stages on the same guest. Browsing results remain hostile when imported into private analysis. Private inputs and derived outputs cannot flow into a public run. Disclosure to the configured inference service and its serving providers is accepted and shown during approval; zero retention is not absence of disclosure.
+Reject private images or inputs combined with public-web access. Use separate public-browsing and private-analysis runs, with no private-to-public transfer. The configured inference service and its serving providers are explicit disclosure recipients. Zero retention is not absence of disclosure.
 
-## Read the contracts where they are used
+[Security](SECURITY.md) links the threat model, data-flow rules, lifecycle obligations, and accepted risks. [Values](VALUES.md) states why these rules matter. [The glossary](GLOSSARY.md) defines the shared terms.
 
-- [`config.example.toml`](config.example.toml): annotated settings, role images, input inventory, classifications, and network policy. Copy to ignored `config.toml`.
-- [`fnox.example.toml`](fnox.example.toml): annotated secret-store aliases. Copy to ignored `fnox.local.toml`; dr-hands resolves required aliases automatically.
-- [`schemas/report.schema.json`](schemas/report.schema.json): report fields, bounds, and intake rules. Obtaining reports is outside scope.
-- [`bin/dr-hands`](bin/dr-hands) and [`cli/`](cli/): command contracts, approval, side effects, and failure behavior.
-- [`workflows/lifecycle.yaml`](workflows/lifecycle.yaml): bundled Dagu lifecycle; [`workflows/remove.yaml`](workflows/remove.yaml): independent removal. These are tool-owned graphs, not user inputs.
-- [`provisioners/README.md`](provisioners/README.md): external enforcement and resource ownership.
+## Local tools and contracts
 
 ```fish
-bin/dr-hands --help
-bin/dr-hands help run
-bin/dr-hands help resume
-bin/dr-hands help lint-report
+mise trust
+mise run setup
+mise exec -- bin/dr-hands --help
+mise exec -- bin/dr-hands help run
+mise exec -- bin/dr-hands lint-report ./report.json
+mise run lint
+mise run test
 ```
 
-The report linter uses Python 3 and [`requirements-lint.txt`](requirements-lint.txt). It validates structure without rendering contents or fetching links. Every other command explains its contract; help exits successfully, while action invocations report that no action was performed and exit nonzero.
+One mise-pinned Bun toolchain runs the CLI, TypeScript checks, and report validation. Report intake uses [JSON Schema](schemas/report.schema.json), rejects duplicate keys and oversized input, and never renders contents or fetches links. Tests exercise the CLI without credentials or infrastructure operations.
 
-## Security and evidence
+- [config.example.toml](config.example.toml): annotated settings and workflow parameters; copy to ignored config.toml.
+- [fnox.example.toml](fnox.example.toml): secret-store references; copy to ignored fnox.local.toml.
+- [cli/help/](cli/help/): one command contract per file.
+- [provisioners/README.md](provisioners/README.md): external enforcement and resource ownership.
 
-[VALUES.md](VALUES.md) states the design principles. [GLOSSARY.md](GLOSSARY.md) defines the domain language. [SECURITY.md](SECURITY.md) defines the threat model, the trifecta policy, and accepted inference disclosure. Technical containment does not ensure the cognitive security of the operator.
-
-Removal destroys all guest-writable runtime resources, revokes authority, and verifies absence. Explicitly exported evidence survives as opaque, still-hostile files. Externally enforced expiry does not depend on the laptop or workflow runner. Reconnection resumes reconciliation and cleanup without extending the deadline.
-
-[GRAVITY.md](GRAVITY.md) describes the restricted reference workflow and its [Alloy and TLA+ models](formal/README.md). Those models do not prove public-web browsing, input classification, or the configuration contract. The [archived design stack](https://github.com/nateberkopec/dr-hands/tree/archive/design-stack-before-spec-only) preserves earlier versions and their Gherkin scenarios.
+The [Alloy and TLA+ models](formal/README.md) cover bounded reference-gravity assumptions, not typed-plan compilation, public browsing, or real-service correctness. [Archive tags](https://github.com/nateberkopec/dr-hands/tree/archive/design-stack-before-spec-only) preserve the earlier designs and their behavioral scenarios.

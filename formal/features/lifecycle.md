@@ -1,6 +1,6 @@
 # Lifecycle
 
-The TLA+ model proves that run-scoped operations, including delayed completions from older generations, cannot revive authority, mutate another run, or declare removal before observation.
+The TLA+ model checks, within finite bounds, that run-scoped operations, including delayed completions from older generations, cannot revive authority, mutate another run, or declare removal before observation.
 
 ## Sub-features
 
@@ -19,17 +19,9 @@ The TLA+ model proves that run-scoped operations, including delayed completions 
 
 Read `formal/tla/GravityLifecycle.tla`, then the three normal configs. Read `GravityLifecycleMutations.tla` and its configs last; each mutation corresponds to one claimed detector.
 
-## Driving it with the formal harness
+## Verification
 
-Preconditions: `mise run verify-formal-doctor` passes.
-
-- Run `mise run verify-formal`.
-- Read `tla-lifecycle.log` for cleanup liveness.
-- Read `tla-generation.log` for generation-two delayed-operation, rejection, and retry coverage.
-- Read `tla-isolation.log` for two-run `RunIsolation` coverage.
-- Read `tla-crash.log` for controller crash, resume, rejection, and retry coverage.
-- Read each `mutation-*.log` for the named violated invariant or action property and the concrete trace.
-- Read `summary.json` to confirm all critical actions were exercised.
+No task in this revision runs these models. The earlier verification harness is preserved at [archive/design-stack-before-spec-only](https://github.com/nateberkopec/dr-hands/tree/archive/design-stack-before-spec-only/formal). Its dependencies and evidence apply to that archived revision, not this checkout.
 
 ## Gotchas
 

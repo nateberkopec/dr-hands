@@ -1,6 +1,6 @@
 # Static trust boundary
 
-The Alloy model proves that useful attacker and target roles fit inside the named trust cut without an ordinary path to protected principals or another chamber.
+The Alloy model checks, within finite bounds, that useful attacker and target roles fit inside the named trust cut without an ordinary path to protected principals or another chamber.
 
 ## Sub-features
 
@@ -16,16 +16,10 @@ The Alloy model proves that useful attacker and target roles fit inside the name
 
 Start with `formal/alloy/gravity.als`. Read `CommonShape`, `SafeArchitecture`, `effectiveNetwork`, and `Escapes`, then read assertions before mutation predicates.
 
-## Driving it with the formal harness
+## Verification
 
-Preconditions: `mise run verify-formal-doctor` passes.
-
-- Run `mise run verify-formal`.
-- Open the printed evidence directory.
-- Read `alloy.log` for one intended `SAT`, nine assertion `UNSAT` results, and five mutation `SAT` results.
-- Read `alloy/receipt.json` for the concrete instances.
-- Read `summary.json` to confirm the harness independently recognized the exact command set and key mutation edges.
+No task in this revision runs these models. The earlier verification harness is preserved at [archive/design-stack-before-spec-only](https://github.com/nateberkopec/dr-hands/tree/archive/design-stack-before-spec-only/formal). Its dependencies and evidence apply to that archived revision, not this checkout.
 
 ## Gotchas
 
-Alloy is bounded to two chambers. `TrustedSetIsNamed` limits modeled principals, not provider internals. A mutation witness proves model sensitivity only for that mutation. None of these checks proves Terraform implements the relation.
+Alloy is bounded to two chambers. `TrustedSetIsNamed` limits modeled principals, not provider internals. A mutation witness proves model sensitivity only for that mutation. None of these checks proves the infrastructure backend implements the relation.
