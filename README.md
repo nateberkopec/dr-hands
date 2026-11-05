@@ -1,50 +1,42 @@
 # dr-hands
 
-This repository contains specifications and documentation only. The implementation has been archived and removed. Commands and setup instructions below and in the other documents describe the archived design, not runnable software in this checkout.
+This repository is a specification, not an implementation.
 
-Triage private GitHub security reports with coding agents, on throwaway cloud machines that hold nothing worth stealing.
+Investigate hostile reports and exercise attacker frameworks against disposable targets without putting your workstation inside the run.
 
-Security reports come from strangers. Some carry prompt injection, malicious proof-of-concept code, or a story built to steer your verdict. dr-hands gives each report its own AWS machine, called a box. The box has a coding agent ([Pi](https://github.com/earendil-works/pi)), a locked-down network, and no credentials. The agents are the hands. You stay the head: you read the verdict, run the failing test, and take every GitHub action yourself.
+## Operators use the CLI; workflows use library APIs
 
-[SECURITY.md](SECURITY.md) explains the threat model.
+The operator asks dr-hands to lint, diagnose, preview, provision, or run a selected workflow. A trusted workflow constructs a typed plan; it never calls dr-hands as a subprocess. Images own guest processes. Reports and guest output cannot select trusted code or widen permissions.
 
-## How a triage goes
+We supply [triage](workflows/triage.ts), which proves or refutes one report, [Gravity Machine](workflows/gravity-machine.ts), which hunts a target until its budget runs out, and [verify](workflows/verify.ts), which replays one finding with no agent. Both investigations attack a synthetic copy of your HTTP service seeded with [canaries](security/canaries.md). A finding counts when verify captures a canary again. [The handoff](security/handoff.md) gives your coding agent only values you or dr-hands wrote, or that select from a closed set. Prose and transcripts go only to you. Operators may author workflows through the same [typed contract](workflows/contract.ts). [The workflow contract](workflows/README.md) defines ownership, generated cleanup, preparation, and recovery. [The backend evaluation](workflows/backend.md) records Alchemy's selection and what it does not prove.
+
+The CLI files are executable documentation: operational actions exit 3 without doing work. **Report linting works locally.** The TypeScript workflow descriptions are checked as specification data; they do not execute investigations or enforce cloud policy.
+
+## Keep private data away from public browsing
+
+Inventory image layers, reports, application source, and outputs. Missing sensitivity means private. Public does not mean safe: assume guest root and compromised targets in every run.
+
+Reject private images or inputs combined with public-web access. Use separate public-browsing and private-analysis runs, with no private-to-public transfer. The configured inference service and its serving providers are explicit disclosure recipients. Zero retention is not absence of disclosure.
+
+[Security](SECURITY.md) links the threat model, data-flow rules, lifecycle obligations, and accepted risks. [Values](VALUES.md) states why these rules matter. [The glossary](GLOSSARY.md) defines the shared terms.
+
+## Local tools and contracts
 
 ```fish
-mise run add owner/repo GHSA-xxxx-xxxx-xxxx
+mise trust
+mise run setup
+mise exec -- bin/dr-hands --help
+mise exec -- bin/dr-hands help run
+mise exec -- bin/dr-hands lint-report ./report.json
+mise run lint
+mise run test
 ```
 
-1. Read the scanner's findings, then work with the agent in the terminal that opens. It writes `~/work/VERDICT.md` and a failing test.
-2. Run the test yourself.
-3. `mise run patch` brings the fix to your laptop. Review every line, apply it in your own checkout, and act in GitHub.
-4. `mise run rm` destroys the box.
+One mise-pinned Bun toolchain runs the CLI, TypeScript checks, and report validation. Report intake uses [JSON Schema](schemas/report.schema.json), rejects duplicate keys and oversized input, and never renders contents or fetches links. Tests exercise the CLI without credentials or infrastructure operations.
 
-## Commands
+- [config.example.toml](config.example.toml): annotated settings and workflow parameters; copy to ignored config.toml.
+- [fnox.example.toml](fnox.example.toml): secret-store references; copy to ignored fnox.local.toml.
+- [cli/help/](cli/help/): one command contract per file.
+- [provisioners/README.md](provisioners/README.md): external enforcement and resource ownership.
 
-`mise tasks` lists every command. Run `refresh` after a reporter replies, and `image` after you change stacks or settings.
-
-## What you need
-
-- macOS with [Ghostty](https://ghostty.org), fish, [mise](https://mise.jdx.dev), and the GitHub CLI signed in
-- A secret store that [fnox](https://fnox.jdx.dev) can read, such as 1Password
-- An AWS account with Organizations. Setup creates a separate member account for boxes.
-- A [Tailscale](https://tailscale.com) tailnet you administer
-- A machine on your tailnet that runs the inference broker in Docker. The broker forwards to [Meridian](https://github.com/rynfar/meridian) for Claude and ChatGPT subscriptions, and to Vercel AI Gateway.
-
-[docs/setup.md](docs/setup.md) walks through the one-time setup.
-
-## Configure
-
-Choose the languages on each box with `DR_HANDS_STACKS`:
-
-```toml
-# mise.local.toml
-[env]
-DR_HANDS_STACKS = "python node"
-```
-
-Stacks live in `stacks/`. [docs/configuration.md](docs/configuration.md) covers every setting and how to add a stack.
-
-## Status
-
-There is no implementation in this checkout. The archived implementation had not completed the full `add` flow against a real box and had no end-to-end tests.
+The [Alloy and TLA+ models](formal/README.md) cover bounded reference-gravity assumptions, not typed-plan compilation, public browsing, or real-service correctness. [Archive tags](https://github.com/nateberkopec/dr-hands/tree/archive/design-stack-before-spec-only) preserve the earlier designs and their behavioral scenarios.

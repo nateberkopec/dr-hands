@@ -1,0 +1,10 @@
+Usage: dr-hands remove RUN_ID
+Cancel new work and request authority revocation before deleting runtime resources.
+Derive cleanup from recorded ownership, not a handwritten script. Serialize against
+run/resume and use the frozen provider and generation, not current config defaults.
+Attempt runtime deletion even if revocation fails; retain every unresolved failure.
+Verify authority revocation and external resource absence independently of backend
+success. Discover leftovers beyond backend state. Never discard unresolved inventory.
+Removal needs no approval, including after partial provisioning or controller loss.
+Opaque explicit exports and non-secret controller metadata survive. Hostile runtime
+resources cannot be retained. Previously disclosed data cannot be recalled.

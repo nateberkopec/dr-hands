@@ -1,0 +1,7 @@
+Usage: dr-hands resume RUN_ID
+Recover from durable local state and reconcile the original identity, generation,
+deadline, resources, and authority. Serialize operations for the same run.
+Do not blindly replay creates, regrant revoked authority, or extend the deadline.
+If expired or removal started, continue removal only. A broken workflow definition
+cannot prevent cleanup from the recorded ownership inventory.
+No scheduler or daemon is required. A missing local record is not an empty cloud.

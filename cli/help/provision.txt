@@ -1,0 +1,9 @@
+Usage: dr-hands provision WORKFLOW
+Freeze the plan and parameter/input/image digests. Show the inventory and require
+approval before mutations. Reject forbidden data flows before approval.
+Create an expiring prepared run with immutable Run ID and generation. Install
+external isolation before booting any image. Boot can execute hostile image code
+and expose data baked into its layers; a later start signal is not a boundary.
+Withhold run-specific inputs and inference credentials until run.
+Return the prepared Run ID. Its original deadline starts at provisioning, not at
+later activation. Partial failure takes the owned-resource removal path.

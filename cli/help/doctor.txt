@@ -1,0 +1,6 @@
+Usage: dr-hands doctor WORKFLOW
+Resolve only selected aliases through the exact fnox file. Diagnose toolchain,
+authentication, immutable image availability, and externally enforced capability
+support with non-mutating APIs. Never mint run authority, bootstrap remote state,
+create resources, or make billed inference requests. Redact sensitive responses.
+Report what read-only checks cannot establish rather than claiming containment.

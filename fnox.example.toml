@@ -1,0 +1,31 @@
+# Copy this tracked example to adjacent, gitignored fnox.local.toml and adapt
+# its references to your secret store. config.toml selects it via secrets.file;
+# relative paths resolve from config.toml. dr-hands does not search unrelated
+# directories for matching aliases or duplicate fnox's provider configuration.
+# References below are examples, not credentials. Never commit plaintext secret
+# values. fnox supports other stores; use their native provider configuration.
+# Provider source: https://fnox.jdx.dev/providers/1password
+
+[providers.op]
+type = "1password"
+
+[secrets]
+# Map only the aliases required by selected infrastructure and inference.
+# Exporters are outside dr-hands and have no aliases here. lint verifies alias
+# declarations without resolving values; doctor performs non-mutating probes;
+# run resolves the same selected aliases automatically, without fnox exec.
+aws_access_key_id = { provider = "op", value = "op://Private/dr-hands-aws/username" }
+aws_secret_access_key = { provider = "op", value = "op://Private/dr-hands-aws/credential" }
+openrouter_admin_key = { provider = "op", value = "op://Private/dr-hands-openrouter/credential" }
+
+# Missing, expired, or unresolved credentials fail explicitly before provisioning.
+# Do not configure fallback plaintext values or missing-secret suppression.
+# The integration must select this exact file and restrict resolution to required
+# aliases. Ambient credentials must not silently substitute for failed lookups.
+# Credential-tool login environment is distinct from dr-hands config overrides.
+# Resolved values stay in memory for the required control-plane operation, never
+# in logs, process arguments, diagnostics, run state, reports, or guest images.
+# Redact secret values from fnox errors; do not turn errors into empty credentials.
+# A provisioner receives only credentials needed by its operation, not the entire
+# controller environment. Guests receive only bounded run inference credentials,
+# never operator, cloud, report-source, or inference-administration credentials.

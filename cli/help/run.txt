@@ -1,0 +1,12 @@
+Usage: dr-hands run WORKFLOW
+       dr-hands run --prepared RUN_ID
+Run WORKFLOW validates and obtains approval, provisions a fresh run, delivers
+declared inputs, grants bounded inference authority, and starts the investigation.
+Run --prepared uses the frozen plan and reconciled resources. It does not extend
+expiry or adopt changes from today's config. A changed input/image/plan requires
+fresh approval and a new run, not in-place permission widening.
+Call execution/backend library APIs; never invoke dr-hands from a workflow.
+A complete run enters owned-resource removal on completion, failure, cancellation,
+or expiry. Export is explicit and cannot block removal. A disconnected controller
+may pause orchestration while guests continue; external expiry remains in force.
+Resume reconciles state before replay, rather than repeating arbitrary commands.

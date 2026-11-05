@@ -1,0 +1,298 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:dr-hands:findings",
+  "title": "dr-hands findings",
+  "description": "Typed claims written by a triage or Gravity Machine guest. Every field is hostile evidence. Free text is deliberately absent: prose belongs in VERDICT.md, which only the operator reads.",
+  "$comment": "Files are bounded to 1 MiB and parsed with the same rules as reports. Validation bounds structure and attacker bandwidth, not truth. Canary names must match the source run's target configuration. Locations are checked against the operator's checkout at the commit the target configuration declares. Transcript bytes are data: never render, execute, fetch, or interpolate them into a prompt. Transcripts are for the operator only and never reach a handoff prompt.",
+  "$defs": {
+    "identity": {
+      "type": "string",
+      "pattern": "^[a-z][a-z0-9_]{0,31}$"
+    },
+    "canary": {
+      "type": "string",
+      "pattern": "^[a-z][a-z0-9_]{0,63}$"
+    },
+    "request": {
+      "description": "One HTTP request on its own connection. The replayer adds the identity's credentials for the current run and drops any transcript header that an identity uses to authenticate.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "as",
+        "method",
+        "path"
+      ],
+      "properties": {
+        "as": {
+          "$ref": "#/$defs/identity"
+        },
+        "method": {
+          "enum": [
+            "GET",
+            "HEAD",
+            "POST",
+            "PUT",
+            "PATCH",
+            "DELETE",
+            "OPTIONS"
+          ]
+        },
+        "path": {
+          "type": "string",
+          "pattern": "^/[\\x21-\\x7e]*$",
+          "maxLength": 2048
+        },
+        "headers": {
+          "type": "array",
+          "maxItems": 32,
+          "items": {
+            "type": "array",
+            "prefixItems": [
+              {
+                "type": "string",
+                "pattern": "^[!#$%&'*+.^_`|~0-9A-Za-z-]{1,64}$"
+              },
+              {
+                "type": "string",
+                "pattern": "^[\\x20-\\x7e]{0,1024}$"
+              }
+            ],
+            "items": false,
+            "minItems": 2
+          }
+        },
+        "body_hex": {
+          "type": "string",
+          "pattern": "^([0-9a-f]{2}){0,65536}$"
+        }
+      }
+    },
+    "raw": {
+      "description": "Raw bytes on one connection with no identity, for parser bugs such as request smuggling. Delays allow slow sends. Credentials are fresh in every run, so raw bytes cannot carry a working one.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "raw"
+      ],
+      "properties": {
+        "raw": {
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 64,
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "hex"
+            ],
+            "properties": {
+              "hex": {
+                "type": "string",
+                "pattern": "^([0-9a-f]{2}){1,65536}$"
+              },
+              "delay_ms": {
+                "type": "integer",
+                "minimum": 0,
+                "maximum": 60000
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "version",
+    "findings"
+  ],
+  "properties": {
+    "version": {
+      "type": "integer",
+      "const": 1
+    },
+    "findings": {
+      "type": "array",
+      "maxItems": 32,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "verdict",
+          "locations"
+        ],
+        "properties": {
+          "verdict": {
+            "description": "Triage may use every value. Gravity Machine reports only confirmed findings.",
+            "enum": [
+              "confirmed",
+              "not-reproduced",
+              "no-oracle",
+              "not-a-vulnerability",
+              "manipulation-suspected",
+              "needs-reporter-info"
+            ]
+          },
+          "cwe": {
+            "type": "string",
+            "pattern": "^CWE-[1-9][0-9]{0,4}$"
+          },
+          "cvss": {
+            "description": "CVSS 4.0 base metrics only.",
+            "type": "string",
+            "pattern": "^CVSS:4\\.0/AV:[NALP]/AC:[LH]/AT:[NP]/PR:[NLH]/UI:[NPA]/VC:[HLN]/VI:[HLN]/VA:[HLN]/SC:[HLN]/SI:[HLN]/SA:[HLN]$"
+          },
+          "class": {
+            "description": "The canary class this finding needs. For no-oracle, the class the target lacks a canary for.",
+            "enum": [
+              "confidentiality",
+              "integrity",
+              "file",
+              "callback",
+              "availability"
+            ]
+          },
+          "locations": {
+            "type": "array",
+            "maxItems": 16,
+            "items": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "path",
+                "line"
+              ],
+              "properties": {
+                "path": {
+                  "type": "string",
+                  "pattern": "^(?!.*(^|/)\\.\\.(/|$))[A-Za-z0-9_][A-Za-z0-9._/-]{0,255}$"
+                },
+                "line": {
+                  "type": "integer",
+                  "minimum": 1,
+                  "maximum": 1000000
+                }
+              }
+            }
+          },
+          "transcript": {
+            "type": "array",
+            "maxItems": 64,
+            "items": {
+              "oneOf": [
+                {
+                  "$ref": "#/$defs/request"
+                },
+                {
+                  "$ref": "#/$defs/raw"
+                }
+              ]
+            }
+          },
+          "captured": {
+            "type": "array",
+            "maxItems": 16,
+            "uniqueItems": true,
+            "items": {
+              "$ref": "#/$defs/canary"
+            }
+          }
+        },
+        "allOf": [
+          {
+            "if": {
+              "properties": {
+                "verdict": {
+                  "const": "confirmed"
+                }
+              }
+            },
+            "then": {
+              "required": [
+                "cwe",
+                "cvss",
+                "class",
+                "transcript",
+                "captured"
+              ],
+              "properties": {
+                "cwe": true,
+                "cvss": true,
+                "class": true,
+                "locations": {
+                  "type": "array",
+                  "minItems": 1
+                },
+                "transcript": {
+                  "type": "array",
+                  "minItems": 1
+                },
+                "captured": {
+                  "type": "array",
+                  "minItems": 1
+                }
+              }
+            }
+          },
+          {
+            "if": {
+              "properties": {
+                "verdict": {
+                  "const": "no-oracle"
+                }
+              }
+            },
+            "then": {
+              "required": [
+                "class"
+              ],
+              "properties": {
+                "class": true
+              }
+            }
+          }
+        ]
+      }
+    }
+  },
+  "examples": [
+    {
+      "version": 1,
+      "findings": [
+        {
+          "verdict": "confirmed",
+          "cwe": "CWE-639",
+          "cvss": "CVSS:4.0/AV:N/AC:L/AT:N/PR:L/UI:N/VC:H/VI:N/VA:N/SC:N/SI:N/SA:N",
+          "class": "confidentiality",
+          "locations": [
+            {
+              "path": "app/controllers/invoices_controller.rb",
+              "line": 14
+            }
+          ],
+          "transcript": [
+            {
+              "as": "tenant_a",
+              "method": "GET",
+              "path": "/api/invoices/2"
+            }
+          ],
+          "captured": [
+            "tenant_b_invoice"
+          ]
+        },
+        {
+          "verdict": "no-oracle",
+          "class": "integrity",
+          "locations": [
+            {
+              "path": "app/models/price.rb",
+              "line": 30
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

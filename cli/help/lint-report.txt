@@ -1,0 +1,6 @@
+Usage: dr-hands lint-report FILE
+Validate schemas/report.schema.json locally with the shared Bun toolchain.
+Bound encoded input to 1 MiB; require strict UTF-8 JSON, unique keys, valid types,
+and at most 16 nested containers. Never render, fetch links, or echo report text.
+Exit 0 means valid structure, not safe content; 1 invalid report; 2 usage/file error.
+This command does not use config, resolve secrets, or install dependencies.

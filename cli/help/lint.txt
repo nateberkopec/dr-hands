@@ -1,0 +1,11 @@
+Usage: dr-hands lint WORKFLOW
+Check the trusted workflow definition and supplied parameters locally. Check
+input schemas, references, ownership, permitted data flows, cleanup obligations,
+and required secret-alias declarations without resolving secrets or using APIs.
+Reject unmanaged resources, retained runtime resources, undeclared recipients,
+missing cleanup, and private inputs/images combined with public HTTP(S).
+Check each target's identities and canaries, require a description for each
+canary, and report which canary classes it covers. Reject canaries whose readers, writers, or checks name unknown identities.
+This checks the plan, not the behavior of arbitrary TypeScript or cloud services.
+Only constrained workflow APIs belong in the definition; report content cannot
+construct the plan or choose trusted code. Runtime parameters also need checks.

@@ -1,7 +1,7 @@
 tmp/
-.terraform/
-*.tfstate
-*.tfstate.*
+node_modules/
+.alchemy/
 state/
 mise.local.toml
+config.toml
 fnox.local.toml

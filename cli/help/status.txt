@@ -1,0 +1,5 @@
+Usage: dr-hands status RUN_ID
+Show bounded controller metadata and external observations, including prepared,
+running, removing, removed, and unresolved failure states. Use the frozen run
+identity, generation, and deadline. Do not render guest output or reveal secrets.
+State missing from the local inventory is not proof of external absence.
