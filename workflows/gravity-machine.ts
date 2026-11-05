@@ -35,8 +35,8 @@ import type { WorkflowDefinition } from "./contract.ts";
 // disclosure. G5: Reference target data is synthetic; no guest gets operator,
 // production, cloud, registry, or source credentials. The attacker's only
 // credential is bounded run inference authority. G6: Status is control-plane data;
-// exports use fixed filenames and remain hostile evidence. Only schema-valid
-// findings reach a handoff prompt, and prose never does. G7: Inference and
+// exports use fixed filenames and remain hostile evidence. Only agent-channel
+// finding fields reach a handoff prompt; prose and transcripts never do. G7: Inference and
 // management authority expire by the deadline (at most twelve hours), even with
 // delayed deletion; retries cannot revive them. G8: Removal requires external
 // absence observations for every runtime resource and capability. Partial failures

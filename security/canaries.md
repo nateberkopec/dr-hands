@@ -4,7 +4,7 @@ A target is a synthetic copy of the operator's HTTP service. A canary is a secre
 
 ## Target
 
-The operator declares each target in `config.toml`: pinned images, the source commit they were built from, entry ports, a health request, identities, and canaries. An optional front proxy sits before the service, so request smuggling can reach a route the proxy forbids. Never use production data or credentials.
+The operator declares each target in `config.toml`: pinned images, the source commit they were built from, entry ports, a health request, identities, and canaries. Each canary has an operator-written `description`, which is what a coding agent reads about it in a [handoff](handoff.md). An optional front proxy sits before the service, so request smuggling can reach a route the proxy forbids. Never use production data or credentials.
 
 An identity names one header that authenticates it. The controller generates fresh credentials and canary values for every run. The target receives all of them at `/run/dr-hands/inputs/seed.json` and seeds them. Clients receive credentials, addresses, and canary names, never canary values. A verify run's replayer receives credentials and canary values to check captures. A transcript that carries values or credentials from one run captures nothing in the next.
 

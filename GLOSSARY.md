@@ -165,7 +165,7 @@ What a verify run observed a transcript change: integrity checks, sink hits, out
 _Avoid_: State diff
 
 **Handoff**:
-A prompt rendered by dr-hands from checked finding fields for the operator's coding agent; it never quotes prose.
+A prompt rendered by dr-hands for the operator's coding agent from agent-channel fields only; it never includes prose or a transcript.
 _Avoid_: Fix prompt, pasted verdict
 
 **Evidence**:

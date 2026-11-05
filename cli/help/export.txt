@@ -1,7 +1,8 @@
 Usage: dr-hands export RUN_ID
 Explicitly copy declared outputs as opaque bytes to fixed local filenames.
 Validate findings and verification outputs against their schemas without
-rendering them. Prose outputs are for the operator and never feed a handoff.
+rendering them. Prose and transcripts are for the operator; only agent-channel
+finding fields feed a handoff.
 Never render, execute, extract, or interpret guest-provided paths.
 Derived outputs inherit private sensitivity if any readable image/input is private.
 Export does not declassify data, feed a public run, extend expiry, or block removal.

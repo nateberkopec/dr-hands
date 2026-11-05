@@ -22,12 +22,25 @@
       "pattern": "^[0-9a-f]{64}$"
     },
     "captured": {
+      "description": "Each captured canary, with the identity whose request captured it when the replayer can attribute it.",
       "type": "array",
       "maxItems": 16,
-      "uniqueItems": true,
       "items": {
-        "type": "string",
-        "pattern": "^[a-z][a-z0-9_]{0,63}$"
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "canary"
+        ],
+        "properties": {
+          "canary": {
+            "type": "string",
+            "pattern": "^[a-z][a-z0-9_]{0,63}$"
+          },
+          "by": {
+            "type": "string",
+            "pattern": "^[a-z][a-z0-9_]{0,31}$"
+          }
+        }
       }
     },
     "minimized": {

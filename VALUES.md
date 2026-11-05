@@ -41,7 +41,7 @@ dr-hands moves that work into a disposable run. You can investigate a report and
 ## Hand off only what you can check
 
 - A finding counts when a verify run with no agent and fresh canaries captures a canary again. See [targets and canaries](security/canaries.md).
-- Prose is for the operator. Never forward it to a coding agent. Agents get only typed fields, checked against your own tree, in a prompt dr-hands writes. See [handoff](security/handoff.md).
+- Split handoff by reader. Free-form attacker content, such as prose and transcripts, goes only to you. Agents get only values you or dr-hands wrote, or that select from a closed set you control, in a prompt dr-hands writes. See [handoff](security/handoff.md).
 - Code written in a run, such as tests and patches, never leaves it as something to apply or execute.
 - When no canary can prove a claim, say so. A gap in the target is not evidence either way.
 

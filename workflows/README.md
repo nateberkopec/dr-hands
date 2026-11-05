@@ -22,7 +22,7 @@ A target role expands to the configured target's machines and an optional front 
 
 Roles use stable run-local names, so transcripts replay in a fresh run. See [targets and canaries](../security/canaries.md).
 
-`verify RUN_ID FINDING` replays one exported finding against a fresh target with the replayer and no inference. `--target NAME` replays it against a configured target instead, such as one built from a fix. `handoff RUN_ID FINDING` renders a prompt from checked finding fields. See [handoff](../security/handoff.md).
+`verify RUN_ID FINDING` replays one exported finding against a fresh target with the replayer and no inference. `--target NAME` replays it against a configured target instead, such as one built from a fix. `handoff RUN_ID FINDING` renders a prompt from agent-channel finding fields only; transcripts and prose stay with the operator. See [handoff](../security/handoff.md).
 
 ## Lifecycle
 

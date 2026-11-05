@@ -42,7 +42,8 @@ lifetime_hours = 12
 # the header that authenticates it. The controller generates fresh credentials and
 # canary values for every run and delivers them to the target in
 # /run/dr-hands/inputs/seed.json; the image seeds them. dr-hands adds file,
-# callback, and availability canaries. See security/canaries.md.
+# callback, and availability canaries. A canary's description is the only text
+# about it a coding agent reads in a handoff. See security/canaries.md.
 
 [targets.app]
 image = "REPLACE_WITH_IMMUTABLE_TARGET_IMAGE"
@@ -60,19 +61,23 @@ tenant_b = { header = "Authorization", prefix = "Bearer " }
 admin = { header = "Authorization", prefix = "Bearer " }
 
 [targets.app.canaries.tenant_a_invoice]
+description = "Tenant A's invoice. Only tenant A and admins may read it."
 class = "confidentiality"
 readers = ["tenant_a", "admin"]
 
 [targets.app.canaries.tenant_b_invoice]
+description = "Tenant B's invoice. Only tenant B and admins may read it."
 class = "confidentiality"
 readers = ["tenant_b", "admin"]
 
 [targets.app.canaries.admin_report]
+description = "The admin revenue report. Only admins may read it."
 class = "confidentiality"
 readers = ["admin"]
 
 # The check response must contain the canary value while the record is intact.
 [targets.app.canaries.tenant_b_profile]
+description = "Tenant B's profile. Only tenant B and admins may change it."
 class = "integrity"
 writers = ["tenant_b", "admin"]
 check = { as = "tenant_b", method = "GET", path = "/api/profile" }
@@ -92,6 +97,7 @@ reset = true
 anonymous = {}
 
 [targets.puma.canaries.forbidden_route]
+description = "A route the front proxy forbids. Only a smuggled request reaches it."
 class = "confidentiality"
 readers = []
 
@@ -109,10 +115,12 @@ owner = { header = "Authorization" }
 other = { header = "Authorization" }
 
 [targets.rubygems.canaries.owner_api_key]
+description = "The owner's API key. Only the owner may read it."
 class = "confidentiality"
 readers = ["owner"]
 
 [targets.rubygems.canaries.owner_gem]
+description = "The owner's gem. Only the owner may push or yank it."
 class = "integrity"
 writers = ["owner"]
 check = { as = "anonymous", method = "GET", path = "/api/v1/gems/canary.json" }

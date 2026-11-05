@@ -6,9 +6,9 @@
 - Guest root can corrupt the investigation, exhaust its resources, and spend its bounded inference budget. Useful results and availability are not guaranteed.
 - Exported evidence can attack software or people that later open it. Fixed filenames and opaque transfer do not make content safe.
 - A target compromised by a transcript can attack the replayer or sink and forge a verification. Verification is evidence, not proof.
-- Minimized transcripts in a handoff still carry attacker-chosen paths, header values, and bytes the bug needs. A regression test built from them can still exercise the bug outside a run.
+- The attacker still chooses which of the operator's locations and which closed-set values reach a coding agent.
+- An operator who pastes a transcript or other operator-channel content into an agent gives it the attacker's text. A regression test built from a transcript can exercise the bug outside a run.
 - An operator who replays a transcript against production does so outside dr-hands. Its side-effect report describes the synthetic target only.
-- A finding's class is chosen by the guest. A code-execution finding labeled `confidentiality` gets its transcript attached.
 - Missing canaries leave bug classes unproven. `no-oracle` marks the gap; it never means safe.
 - Races, business-logic bugs, non-HTTP libraries, and real third-party services are outside the canary catalog.
 - A scheduler the operator adds to repeat runs holds dr-hands' credential aliases. Scheduling is outside dr-hands.

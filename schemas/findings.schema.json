@@ -3,7 +3,7 @@
   "$id": "urn:dr-hands:findings",
   "title": "dr-hands findings",
   "description": "Typed claims written by a triage or Gravity Machine guest. Every field is hostile evidence. Free text is deliberately absent: prose belongs in VERDICT.md, which only the operator reads.",
-  "$comment": "Files are bounded to 1 MiB and parsed with the same rules as reports. Validation bounds structure and attacker bandwidth, not truth. Canary names must match the source run's target configuration. Locations are checked against the operator's checkout at the commit the target configuration declares. Transcript bytes are data: never render, execute, fetch, or interpolate them into a prompt. Handoff passes only a verified, minimized transcript, as a separate file.",
+  "$comment": "Files are bounded to 1 MiB and parsed with the same rules as reports. Validation bounds structure and attacker bandwidth, not truth. Canary names must match the source run's target configuration. Locations are checked against the operator's checkout at the commit the target configuration declares. Transcript bytes are data: never render, execute, fetch, or interpolate them into a prompt. Transcripts are for the operator only and never reach a handoff prompt.",
   "$defs": {
     "identity": {
       "type": "string",
