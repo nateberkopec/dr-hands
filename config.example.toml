@@ -36,6 +36,87 @@ admin_key = "openrouter_admin_key"
 # fallback. Expiry begins at provisioning and is independent of the workstation.
 lifetime_hours = 12
 
+# Targets are synthetic copies of an HTTP service, shared by triage and Gravity
+# Machine. Never use production data or credentials. commit names the source the
+# images were built from; handoff checks finding locations there. An identity names
+# the header that authenticates it. The controller generates fresh credentials and
+# canary values for every run and delivers them to the target in
+# /run/dr-hands/inputs/seed.json; the image seeds them. dr-hands adds file,
+# callback, and availability canaries. See security/canaries.md.
+
+[targets.app]
+image = "REPLACE_WITH_IMMUTABLE_TARGET_IMAGE"
+commit = "REPLACE_WITH_40_CHARACTER_SOURCE_COMMIT"
+sensitivity = "private"
+entry_ports = [3000]
+health = { method = "GET", path = "/up" }
+# True when the image can reset to its seed, which lets verify minimize.
+reset = true
+
+[targets.app.identities]
+anonymous = {}
+tenant_a = { header = "Authorization", prefix = "Bearer " }
+tenant_b = { header = "Authorization", prefix = "Bearer " }
+admin = { header = "Authorization", prefix = "Bearer " }
+
+[targets.app.canaries.tenant_a_invoice]
+class = "confidentiality"
+readers = ["tenant_a", "admin"]
+
+[targets.app.canaries.tenant_b_invoice]
+class = "confidentiality"
+readers = ["tenant_b", "admin"]
+
+[targets.app.canaries.admin_report]
+class = "confidentiality"
+readers = ["admin"]
+
+# The check response must contain the canary value while the record is intact.
+[targets.app.canaries.tenant_b_profile]
+class = "integrity"
+writers = ["tenant_b", "admin"]
+check = { as = "tenant_b", method = "GET", path = "/api/profile" }
+
+# Puma behind a front proxy. The reference app serves its canary at a route the
+# proxy forbids, so only a smuggled request can capture it.
+[targets.puma]
+image = "REPLACE_WITH_IMMUTABLE_PUMA_REFERENCE_IMAGE"
+commit = "REPLACE_WITH_40_CHARACTER_PUMA_COMMIT"
+proxy_image = "REPLACE_WITH_IMMUTABLE_PROXY_IMAGE"
+sensitivity = "public"
+entry_ports = [80]
+health = { method = "GET", path = "/" }
+reset = true
+
+[targets.puma.identities]
+anonymous = {}
+
+[targets.puma.canaries.forbidden_route]
+class = "confidentiality"
+readers = []
+
+[targets.rubygems]
+image = "REPLACE_WITH_IMMUTABLE_SYNTHETIC_RUBYGEMS_IMAGE"
+commit = "REPLACE_WITH_40_CHARACTER_RUBYGEMS_COMMIT"
+sensitivity = "public"
+entry_ports = [3000]
+health = { method = "GET", path = "/" }
+reset = false
+
+[targets.rubygems.identities]
+anonymous = {}
+owner = { header = "Authorization" }
+other = { header = "Authorization" }
+
+[targets.rubygems.canaries.owner_api_key]
+class = "confidentiality"
+readers = ["owner"]
+
+[targets.rubygems.canaries.owner_gem]
+class = "integrity"
+writers = ["owner"]
+check = { as = "anonymous", method = "GET", path = "/api/v1/gems/canary.json" }
+
 # Config supplies only parameters to trusted typed workflow definitions. The
 # definition owns roles, relationships, destinations, and cleanup obligations.
 # Reports/guest output cannot select definitions or modify the plan. Installing
@@ -51,6 +132,7 @@ agent_image = "REPLACE_WITH_IMMUTABLE_AGENT_IMAGE"
 # Missing sensitivity is private. Classify all image layers, including deleted
 # contents. Operator classification is not an automated secret-free attestation.
 agent_sensitivity = "private"
+target = "app"
 report = "report.json"
 report_sensitivity = "private"
 # Optional source snapshot: links may not escape its root; never a live host mount.
@@ -59,24 +141,27 @@ report_sensitivity = "private"
 network = "inference-only"
 
 # For public browsing, use a separate triage run with network = "public-http"
-# and every actual image/input explicitly public. Private plus public-http is
-# rejected without override, across all roles. Sensitive URLs count as private.
+# and every actual image/input/target explicitly public. Private plus public-http
+# is rejected without override, across all roles. Sensitive URLs count as private.
 # No private-to-public transfer, stage transition, or automatic declassification.
 # Browsing exports remain hostile when explicitly imported into private analysis.
 
-[workflows.gravity]
-definition = "workflows/gravity.ts"
+[workflows.gravity-machine]
+definition = "workflows/gravity-machine.ts"
 
-[workflows.gravity.parameters]
+[workflows.gravity-machine.parameters]
 attacker_image = "REPLACE_WITH_IMMUTABLE_ATTACKER_IMAGE"
 attacker_sensitivity = "public"
-target_image = "REPLACE_WITH_IMMUTABLE_SYNTHETIC_TARGET_IMAGE"
-target_sensitivity = "public"
-service_ports = [3000]
+target = "rubygems"
 callback_ports = []
 
+# verify takes its target and finding from a source run, not from config:
+# dr-hands verify RUN_ID FINDING, or --target NAME to check a fix. Repeating Gravity Machine on a cadence is the
+# operator's choice, outside dr-hands; every run's deadline and budget bound it.
+
 # Workflow lint checks parameter kinds, required values, references, destinations,
-# sensitivities, permitted flows, ownership, and cleanup obligations locally.
+# targets, canary coverage, sensitivities, permitted flows, ownership, and cleanup
+# obligations locally.
 # doctor resolves secrets and performs non-mutating capability probes. dry-run
 # previews the plan with read-only APIs; it cannot bootstrap remote state.
 # provision freezes input/image/definition digests and obtains approval before

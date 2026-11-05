@@ -11,10 +11,11 @@ Sensitivity and trust are separate. Public means permitted for public disclosure
 | Private analysis | Allowed and inventoried | Configured inference service and its serving providers |
 | Public browsing | Forbidden in every image layer and input | Public HTTP(S) and configured inference |
 | Reference gravity | Public/synthetic reference contents | Configured inference; role traffic stays inside the run |
+| Verification | Allowed and inventoried | None; role traffic and the sink stay inside the run |
 
 Reject private or unclassified images/inputs combined with public-web access. There is no approval override. Reports, source, findings, URLs, and search queries may all be private. Source provenance cannot lower sensitivity or choose targets, images, paths, or recipients.
 
-Typed relationships declare which role reads each input, reaches each role/port, or calls inference. Derive permissions from those relationships, not from observed agent behavior. Opaque guest images cannot reveal all their future behavior through static analysis.
+Targets hold synthetic data. Fresh credentials and canary values go only to the target and, in a verify run, the replayer. Typed relationships declare which role reads each input, reaches each role/port, or calls inference. Derive permissions from those relationships, not from observed agent behavior. Opaque guest images cannot reveal all their future behavior through static analysis.
 
 ## Separate runs
 

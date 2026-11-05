@@ -1,0 +1,76 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:dr-hands:verification",
+  "title": "dr-hands verification",
+  "description": "What a verify run's replayer observed when it replayed one finding against a fresh target. The replayer is a guest, so this record is evidence, not proof.",
+  "$comment": "Files are bounded to 1 MiB and parsed with the same rules as reports. The controller rejects a minimized transcript that cannot be derived from the finding's transcript by removal alone. It adds boundary observations of outbound traffic as controller metadata; they are not part of this guest-written file.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "version",
+    "finding_sha256",
+    "captured",
+    "side_effects"
+  ],
+  "properties": {
+    "version": {
+      "type": "integer",
+      "const": 1
+    },
+    "finding_sha256": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{64}$"
+    },
+    "captured": {
+      "type": "array",
+      "maxItems": 16,
+      "uniqueItems": true,
+      "items": {
+        "type": "string",
+        "pattern": "^[a-z][a-z0-9_]{0,63}$"
+      }
+    },
+    "minimized": {
+      "description": "The smallest transcript that still captured the same canaries, derived from the finding's transcript by removing requests, headers, query parameters, and bytes. Absent when the target cannot reset to its seed.",
+      "type": "array",
+      "maxItems": 64,
+      "items": {
+        "oneOf": [
+          {
+            "$ref": "urn:dr-hands:findings#/$defs/request"
+          },
+          {
+            "$ref": "urn:dr-hands:findings#/$defs/raw"
+          }
+        ]
+      }
+    },
+    "side_effects": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "integrity_changed",
+        "sink_hits",
+        "target_available"
+      ],
+      "properties": {
+        "integrity_changed": {
+          "type": "array",
+          "maxItems": 16,
+          "uniqueItems": true,
+          "items": {
+            "type": "string",
+            "pattern": "^[a-z][a-z0-9_]{0,63}$"
+          }
+        },
+        "sink_hits": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "target_available": {
+          "type": "boolean"
+        }
+      }
+    }
+  }
+}

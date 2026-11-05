@@ -6,7 +6,7 @@ These values explain why dr-hands works the way it does. The specifications say 
 
 Checking a security report can mean opening hostile links, reading text written to trick you, and running an attacker's code. Doing that on your workstation puts your credentials, your network, and your other work at risk. Testing an attack tool against a live target can harm both the agent and the target.
 
-dr-hands moves that work into a disposable run. You can investigate a report and collect evidence without giving the agent access to your workstation or production systems. dr-hands cannot protect your judgment from what you read.
+dr-hands moves that work into a disposable run. You can investigate a report and collect evidence without giving the agent access to your workstation or production systems. What comes back is a claim you can check, not a fix you must trust.
 
 ## Assume everything in a run is hostile
 
@@ -14,7 +14,7 @@ dr-hands moves that work into a disposable run. You can investigate a report and
 - Every guest has root from the moment it boots. Assume the target is compromised from the start.
 - Every image, input, and output is hostile, including public ones. Public means "allowed to be disclosed," not "safe."
 - Schema validation and image pinning check structure and identity. They do not prove safety.
-- [Security](SECURITY.md) links the threat model, data-flow policy, lifecycle, and accepted risks. The [gravity workflow](workflows/gravity.ts) states its reference assumptions.
+- [Security](SECURITY.md) links the threat model, data-flow policy, lifecycle, and accepted risks. The [Gravity Machine workflow](workflows/gravity-machine.ts) states its reference assumptions.
 
 ## Enforce rules outside the guest
 
@@ -37,6 +37,13 @@ dr-hands moves that work into a disposable run. You can investigate a report and
 - A run's deadline is fixed at provisioning. Nothing extends it. Expiry must work even when the workstation is off.
 - Exported evidence may survive as opaque files. It stays hostile.
 - Removal cannot recall public-web requests or data already sent to the inference service.
+
+## Hand off only what you can check
+
+- A finding counts when a verify run with no agent and fresh canaries captures a canary again. See [targets and canaries](security/canaries.md).
+- Prose is for the operator. Never forward it to a coding agent. Agents get only typed fields, checked against your own tree, in a prompt dr-hands writes. See [handoff](security/handoff.md).
+- Code written in a run, such as tests and patches, never leaves it as something to apply or execute.
+- When no canary can prove a claim, say so. A gap in the target is not evidence either way.
 
 ## Trust as little as possible
 
@@ -64,6 +71,7 @@ Our goal is that escaping dr-hands requires a critical (CVSS 9+) zero-day in a m
 
 - The controller runs on the operator's workstation. It needs no daemon, scheduler, or external workflow engine.
 - After a crash, resume from saved state. Check real resources before repeating any step.
+- dr-hands runs when invoked. How often to run it, including Gravity Machine, is the operator's choice and outside dr-hands. Every run's deadline and inference budget bound it, whatever started it.
 
 ## Run anywhere
 
@@ -75,7 +83,7 @@ Cloud resources come from code, not console clicks. A one-time manual step is ac
 
 ## Keep personal data out of the repository
 
-- Personal settings live in the ignored `config.toml`. The tracked `config.example.toml` shows the format.
+- Personal settings live in the ignored `config.toml`, including targets and their synthetic identities. The tracked `config.example.toml` shows the format.
 - Secrets live in your own secret store, reached through fnox. Settings name secret aliases, never secret values.
 - Report sources connect by producing the documented report format. dr-hands never runs report-source plugins.
 

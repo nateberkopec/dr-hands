@@ -2,13 +2,27 @@
 
 A trusted operator-authored workflow constructs a typed plan through library APIs. Operators invoke dr-hands; workflows never invoke the CLI. Guest images own guest processes. Reports and guest output cannot select trusted code, alter the graph, or widen permissions.
 
-The two supplied descriptions are [triage](triage.ts) and [gravity](gravity.ts). Their shared [type](contract.ts) requires owned-resource cleanup. These are type-checked specification data, not an executor or a proof of policy enforcement. `dr-hands lint` describes the complete plan checks; it does not implement them. The report linter is the working validation command.
+The supplied descriptions are [triage](triage.ts), [Gravity Machine](gravity-machine.ts), and [verify](verify.ts). Their shared [type](contract.ts) requires owned-resource cleanup. These are type-checked specification data, not an executor or a proof of policy enforcement. `dr-hands lint` describes the complete plan checks; it does not implement them. The report linter is the working validation command.
 
 ## One source of structure
 
 The workflow owns roles, parameter declarations, input destinations, permitted relationships, outputs, and cleanup obligations. Config supplies parameter values, not a second graph. Missing sensitivity is private. Omitted optional inputs are absent from the inventory; required inputs must exist. Reject unknown parameters, mismatched kinds, dangling references, duplicate destinations, invalid ports, and unsupported role interfaces.
 
 A plan freezes the workflow/tool version, parameters, image identities, input digests, resources, authority, recipients, permissions, cleanup obligations, and deadline. A fresh Run ID and generation identify its execution. Material changes require a new run and approval.
+
+## Targets, findings, and verification
+
+Triage and Gravity Machine attack the same kind of target with different goals. Triage takes a report and proves or refutes its claim. Gravity Machine takes an attacker toolkit image and no report, and hunts for any canary until its budget or deadline runs out. Both export typed findings and operator-only prose.
+
+A target role expands to the configured target's machines and an optional front proxy. The controller generates fresh identity credentials and canary values for every run. Built-in roles have fixed relationships, which the plan derives from the declared roles:
+
+- Each client reaches only the target's entry ports and reads the sink's hits. It receives `/run/dr-hands/inputs/target.json` with credentials, run-local addresses, and canary names.
+- The target receives `/run/dr-hands/inputs/seed.json` with credentials and canary values, and reaches only the sink.
+- The replayer is a client that also receives `/run/dr-hands/inputs/oracle.json` with credentials and canary values.
+
+Roles use stable run-local names, so transcripts replay in a fresh run. See [targets and canaries](../security/canaries.md).
+
+`verify RUN_ID FINDING` replays one exported finding against a fresh target with the replayer and no inference. `--target NAME` replays it against a configured target instead, such as one built from a fix. `handoff RUN_ID FINDING` renders a prompt from checked finding fields. See [handoff](../security/handoff.md).
 
 ## Lifecycle
 
@@ -17,6 +31,8 @@ A plan freezes the workflow/tool version, parameters, image identities, input di
 `provision` obtains approval and creates an expiring prepared run. External policy must hold before images boot. Boot itself can execute hostile code and read private image layers. Run-specific inputs and inference authority are withheld until activation.
 
 `run WORKFLOW` provisions and executes a fresh run. `run --prepared RUN_ID` reconciles the frozen prepared run without extending its deadline. Completion, failure, cancellation, and expiry enter removal. Export is explicit and cannot delay removal.
+
+dr-hands runs when invoked. Repeating Gravity Machine on a cadence is the operator's choice, outside dr-hands; each run's deadline and inference budget bound it.
 
 `status`, `resume`, and `remove` operate on recorded ownership even when the workflow definition is broken. Serialize mutations for each run. Resume observes resources and authority before replay; expired or removing runs can only continue removal. No local daemon is required. External expiry continues while the workstation is absent.
 

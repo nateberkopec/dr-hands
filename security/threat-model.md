@@ -10,7 +10,7 @@ The operator selects a trusted workflow independently of the report. Workflow co
 
 The controller, policy compiler, infrastructure backend, selected provisioner, runtime, and dependencies are trusted code that require review. The finite gravity model does not enumerate their internals. Types can expose obligations but do not establish that a provider performs deletion or enforces networking.
 
-The operator supplies immutable images and declared inputs. Images own guest processes; no process-ordering assumption hides data from guest root. All image layers count, including deleted-but-recoverable files. Pinning identifies content, not safety or correct classification.
+The operator supplies immutable images, declared inputs, and target configuration. The replayer and sink are dr-hands images, but they run as guests and their output is evidence. Images own guest processes; no process-ordering assumption hides data from guest root. All image layers count, including deleted-but-recoverable files. Pinning identifies content, not safety or correct classification.
 
 ## External enforcement
 

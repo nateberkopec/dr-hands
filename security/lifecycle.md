@@ -24,6 +24,6 @@ Request authority revocation before deletion. If revocation fails, still attempt
 
 Observe resource absence and authority revocation independently of backend success. Discover leftovers before recording removal. Preserve unresolved inventory through retries. A successful delete callback, an exited process, or a missing state row cannot certify removal.
 
-Authority expires externally after the configured lifetime, at most twelve hours, even if the controller or guests fail. Full deletion requires eventual provider progress and a returning controller. This distinction is model assumption A9 in the gravity workflow.
+Authority expires externally after the configured lifetime, at most twelve hours, even if the controller or guests fail. Full deletion requires eventual provider progress and a returning controller. This distinction is model assumption A9 in the Gravity Machine workflow.
 
 Explicit export copies declared output bytes to fixed local filenames. Never print guest-controlled content directly, extract it, execute it, render it, or interpret it as a local path. Export cannot block cleanup or extend expiry. Completed exports and non-secret controller metadata survive removal; exports remain hostile and retain their sensitivity.

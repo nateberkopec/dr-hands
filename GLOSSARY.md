@@ -20,6 +20,18 @@ _Avoid_: Preview, schema validation
 A trusted definition of an investigation's roles, inputs, permitted relationships, outputs, and cleanup obligations.
 _Avoid_: Lifecycle script, experiment manifest
 
+**Triage**:
+The workflow that proves or refutes one report's claim against a target.
+_Avoid_: Fix workflow
+
+**Gravity Machine**:
+The workflow that points an attacker toolkit at a target and hunts for canaries until its budget or deadline runs out; formal models call it reference gravity.
+_Avoid_: Hunt mode, gravity (outside the formal models)
+
+**Verify run**:
+A run that replays one exported finding against a fresh target with the replayer and no agent or inference.
+_Avoid_: Re-run, retest
+
 **Plan**:
 A resolved workflow with its parameter values, resource ownership, permissions, input identities, and cleanup obligations.
 _Avoid_: Workflow, deployment config
@@ -59,8 +71,28 @@ The externally enforced limit on a run's access to other systems and authority.
 _Avoid_: Guest firewall, container boundary
 
 **Role**:
-A participant in a workflow, such as an investigating agent, attacker, or target.
+A participant in a workflow, such as an investigating agent, attacker, target, replayer, or sink.
 _Avoid_: Machine type, framework
+
+**Target**:
+A synthetic copy of the operator's HTTP service, declared in config with images, source commit, entry ports, identities, and canaries.
+_Avoid_: Production, staging (when the run's copy is meant)
+
+**Identity**:
+A named synthetic principal of a target, such as anonymous, a tenant, or an admin, whose credentials are generated fresh for every run.
+_Avoid_: User account, real credential
+
+**Canary**:
+A secret value planted in a target whose capture proves a bug class. Operator canaries guard the app's own boundaries; dr-hands canaries cover files, callbacks, and availability.
+_Avoid_: Flag, test data
+
+**Sink**:
+The dr-hands role that receives target callbacks and records them as canary captures.
+_Avoid_: Listener, attacker server
+
+**Replayer**:
+The dr-hands role in a verify run that sends a finding's transcript and checks captures.
+_Avoid_: Test runner
 
 **Image**:
 An immutable software environment for a role, including all layers and embedded data.
@@ -115,6 +147,26 @@ The controller's record of a run's resources, capabilities, identities, and unre
 _Avoid_: Backend state, local directory
 
 ## Results and removal
+
+**Transcript**:
+The HTTP requests or raw connection bytes in a finding, sent as named identities.
+_Avoid_: Proof of concept (when attacker code is meant), exploit script
+
+**Finding**:
+A typed claim in `findings.json` with a verdict, locations, a transcript, and captured canary names, and no free text.
+_Avoid_: Verdict (when the prose is meant), report
+
+**Coverage**:
+The canary classes a target can prove. A claim outside it gets the verdict `no-oracle`.
+_Avoid_: Test coverage
+
+**Side-effect report**:
+What a verify run observed a transcript change: integrity checks, sink hits, outbound traffic, and availability.
+_Avoid_: State diff
+
+**Handoff**:
+A prompt rendered by dr-hands from checked finding fields for the operator's coding agent; it never quotes prose.
+_Avoid_: Fix prompt, pasted verdict
 
 **Evidence**:
 Guest-produced findings, logs, or other output that remain hostile regardless of validity. Workflow output declarations name the evidence eligible for export.

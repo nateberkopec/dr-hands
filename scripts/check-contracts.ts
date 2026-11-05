@@ -1,9 +1,13 @@
 import assert from "node:assert/strict";
 import { readdir, readFile, stat } from "node:fs/promises";
 import { dirname, resolve, relative } from "node:path";
+import Ajv2020 from "ajv/dist/2020.js";
 import triage from "../workflows/triage.ts";
-import gravity from "../workflows/gravity.ts";
+import gravityMachine from "../workflows/gravity-machine.ts";
+import verify from "../workflows/verify.ts";
 import type { WorkflowDefinition } from "../workflows/contract.ts";
+import findings from "../schemas/findings.schema.json";
+import verification from "../schemas/verification.schema.json";
 
 const root = resolve(import.meta.dir, "..");
 async function files(directory: string): Promise<string[]> {
@@ -33,12 +37,22 @@ for (const path of await files(root)) {
 for (const filename of ["config.example.toml", "fnox.example.toml", "mise.toml"]) {
   Bun.TOML.parse(await readFile(resolve(root, filename), "utf8"));
 }
-for (const workflow of [triage, gravity] satisfies WorkflowDefinition[]) {
+const ajv = new Ajv2020({ strict: true });
+ajv.addSchema(findings);
+ajv.compile(verification);
+const validFindings = ajv.getSchema("urn:dr-hands:findings")!;
+for (const example of findings.examples) assert(validFindings(example), JSON.stringify(validFindings.errors));
+for (const workflow of [triage, gravityMachine, verify] satisfies WorkflowDefinition[]) {
   const definition: WorkflowDefinition = workflow;
   assert.equal(definition.cleanup, "owned-resources");
   for (const role of Object.values(definition.roles)) {
-    assert.equal(definition.parameters[role.imageParameter]?.kind, "image");
-    assert.equal(definition.parameters[role.sensitivityParameter]?.kind, "sensitivity");
+    if (role.interface === "target") {
+      assert.equal(definition.parameters[role.targetParameter]?.kind, "target");
+      for (const client of role.clients) assert(client in definition.roles);
+    } else if ("imageParameter" in role) {
+      assert.equal(definition.parameters[role.imageParameter]?.kind, "image");
+      assert.equal(definition.parameters[role.sensitivityParameter]?.kind, "sensitivity");
+    }
   }
   for (const input of definition.inputs) {
     assert.equal(definition.parameters[input.parameter]?.kind, input.kind);
@@ -50,6 +64,7 @@ for (const workflow of [triage, gravity] satisfies WorkflowDefinition[]) {
     assert.equal(definition.parameters[connection.portsParameter]?.kind, "ports");
   }
   for (const role of definition.inferenceRoles) assert(role in definition.roles);
+  assert.equal(definition.inferenceRoles.length === 0, definition.network === "isolated");
   for (const output of definition.outputs) assert(output.role in definition.roles);
   if (typeof definition.network !== "string") {
     assert.equal(definition.parameters[definition.network.parameter]?.kind, "network");

@@ -1,8 +1,8 @@
 # Formal verification
 
-The Alloy network model covers the restricted reference gravity workflow only; it does not model public browsing, image/input classification, or the lethal-trifecta policy. The lifecycle model is an abstract reference for shared Run behavior, not proof of typed-plan compilation, backend integration, or configuration contracts.
+The Alloy network model covers the restricted reference Gravity Machine workflow only; it does not model public browsing, image/input classification, the lethal-trifecta policy, the callback sink, a front proxy, or verify runs. The lifecycle model is an abstract reference for shared Run behavior, not proof of typed-plan compilation, backend integration, or configuration contracts.
 
-This is the deepest layer of the gravity acceptance pyramid. Start at the numbered claims and assumptions in [the gravity workflow](../workflows/gravity.ts), then read the [threat model](../security/threat-model.md) and [behavioral acceptance](https://github.com/nateberkopec/dr-hands/blob/archive/design-stack-before-spec-only/features/gravity.feature) before reading the models.
+This is the deepest layer of the gravity acceptance pyramid. Start at the numbered claims and assumptions in [the Gravity Machine workflow](../workflows/gravity-machine.ts), then read the [threat model](../security/threat-model.md) and [behavioral acceptance](https://github.com/nateberkopec/dr-hands/blob/archive/design-stack-before-spec-only/features/gravity.feature) before reading the models.
 
 The [proof map](features/README.md) is the maintained guide to every formal feature and its evidence.
 
@@ -123,7 +123,7 @@ With weak or strong fairness for time, revocation, provider deletion, observatio
 - failed provisioning eventually reaches `Removed`;
 - a requested deletion eventually makes the resource absent.
 
-These properties depend on assumption A9 in workflows/gravity.ts. If the controller never returns or a provider never completes an accepted operation, full deletion cannot be guaranteed. Deadline-based loss of authority and stale-generation rejection remain safety properties and do not use A9.
+These properties depend on assumption A9 in workflows/gravity-machine.ts. If the controller never returns or a provider never completes an accepted operation, full deletion cannot be guaranteed. Deadline-based loss of authority and stale-generation rejection remain safety properties and do not use A9.
 
 ### Negative controls
 
@@ -139,7 +139,7 @@ The model deliberately collapses provider-specific resources. Implementation sce
 
 | Claim | Security invariants | Alloy | TLA+ | Behavioral acceptance |
 |---|---|---|---|---|
-| G1 useful chamber | I3 | `UsefulChamberIsContained` | `ActiveImpliesComplete` | reference ARTEX/RubyGems.org canary and matching log |
+| G1 useful chamber | I3 | `UsefulChamberIsContained` | `ActiveImpliesComplete` | reference ARTEX/RubyGems.org canary capture reproduced by a verify run |
 | G2 root contained | I2, I7 | `TargetHasOnlyChamberPaths`, `NoGuestEnforcesPolicy` | authority derived outside guest state | root path and policy-replacement scenarios |
 | G3 declared paths | I2–I5 | `ManagementIsInboundOnly`, `NoCrossChamberReachability` | run-scoped resource state | allowed and forbidden path scenarios |
 | G4 bounded inference | I6, I8, I9 | `InferenceIsRunScoped` | `NoStaleAttachment`, `ExpiredAuthorityUnusable`, `RevocationMonotonic`, `DeadlineStable` | workspace, budget, expiry, and egress-evasion scenarios |

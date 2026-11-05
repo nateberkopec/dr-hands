@@ -22,7 +22,7 @@ function invoke(args: string[], expected: number) {
 try {
   invoke(["--help"], 0);
   invoke(["help"], 0);
-  for (const command of ["init", "lint", "doctor", "dry-run", "provision", "run", "status", "resume", "remove", "export"]) {
+  for (const command of ["init", "lint", "doctor", "dry-run", "provision", "run", "status", "resume", "remove", "export", "verify", "handoff"]) {
     invoke([command, "--help"], 0);
     invoke(["help", command], 0);
     assert(invoke([command, "example"], 3).includes("no action performed"));

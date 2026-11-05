@@ -1,0 +1,9 @@
+Usage: dr-hands handoff RUN_ID FINDING
+Write a coding-agent prompt for one finding from fixed dr-hands text. Use only
+schema-valid finding fields. Check canary names against RUN_ID's target and each
+location against the operator's checkout at the target's configured commit.
+Label the prompt unverified unless a verify run captured every claimed canary.
+Attach the minimized transcript only for verified confidentiality, integrity,
+or availability findings. Ask for a regression test with benign inputs, never a
+replay against a running service. Never quote verdict.md, the report, or other
+guest prose. Create no resources.

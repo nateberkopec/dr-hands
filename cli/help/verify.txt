@@ -1,0 +1,11 @@
+Usage: dr-hands verify RUN_ID FINDING [--target NAME]
+Replay finding number FINDING from RUN_ID's exported findings.json in a fresh
+run with the verify workflow. Use RUN_ID's frozen target and image identities,
+or configured target NAME, which must define the finding's canaries, to check a fix. Validate the export first; it remains
+hostile input and keeps RUN_ID's sensitivity. Generate fresh credentials and
+canary values. Start no agent and grant no inference. Obtain approval like any
+run, then export verification.json with the same parsing bounds as findings.
+Captured canaries are evidence, not proof: a compromised target can forge them.
+Minimize only when the target resets to its seed; reject a minimized transcript
+that is not a reduction of the finding's. Report side effects observed by
+integrity checks, the sink, availability, and the run boundary.

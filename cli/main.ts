@@ -1,11 +1,11 @@
 import { readFile } from "node:fs/promises";
 
-const actions = new Set(["init", "lint", "doctor", "dry-run", "provision", "run", "status", "resume", "remove", "export"]);
+const actions = new Set(["init", "lint", "doctor", "dry-run", "provision", "run", "status", "resume", "remove", "export", "verify", "handoff"]);
 const usage = `Usage: dr-hands [--config PATH] COMMAND [ARGS]
        dr-hands help COMMAND
 
 Commands: init, lint, doctor, dry-run, provision, run, status, resume, remove,
-          export, lint-report
+          export, verify, handoff, lint-report
 
 Operators invoke dr-hands. Workflows construct typed plans through library APIs;
 workflows never invoke this CLI. Use COMMAND --help for each contract.
